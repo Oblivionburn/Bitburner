@@ -11,9 +11,10 @@ Notes:
 export let serversChecked = []
 
 /** @param {NS} ns */
-export async function main(ns) {
-	const colors =
-	{
+export async function main(ns)
+{
+	const colors = 
+    {
 		red: "\u001b[31;1m",
 		green: "\u001b[32;1m",
 		yellow: "\u001b[33;1m",
@@ -31,18 +32,22 @@ export async function main(ns) {
 	ns.clearLog();
 
 	ns.tail("worm-removal.js", "home");
-
+	
 	await recursiveSweep(ns, "home", colors);
 	ns.tprint("Worm/Hack removal finished!");
 }
 
-export async function recursiveSweep(ns, server, colors) {
+export async function recursiveSweep(ns, server, colors)
+{
 	var servers = ns.scan(server);
-	if (servers.length > 0) {
-		for (let i = 0; i < servers.length; i++) {
+	if (servers.length > 0)
+	{
+		for (let i = 0; i < servers.length; i++)
+		{
 			var server = servers[i];
 			if (server != "home" &&
-				!serversChecked.includes(server)) {
+				!serversChecked.includes(server))
+			{
 				removeScript(ns, server, "worm.js", colors);
 				removeScript(ns, server, "hack.js", colors);
 
@@ -56,21 +61,27 @@ export async function recursiveSweep(ns, server, colors) {
 	}
 }
 
-export function removeScript(ns, server, script, colors) {
-	if (ns.fileExists(script, server)) {
+export function removeScript(ns, server, script, colors)
+{
+	if (ns.fileExists(script, server))
+	{
 		ns.print(`${colors["red"] + "'" + script + "' script found on '" + server + "' server!"}`);
 
-		if (ns.scriptKill(script, server)) {
+		if (ns.scriptKill(script, server))
+		{
 			ns.print(`${colors["green"] + "Killed '" + script + "' script on '" + server + "' server."}`);
 		}
-		else {
+		else
+		{
 			ns.print(`${colors["red"] + "Failed to kill '" + script + "' script on '" + server + "' server!"}`);
 		}
 
-		if (ns.rm(script, server)) {
+		if (ns.rm(script, server))
+		{
 			ns.print(`${colors["green"] + "Removed '" + script + "' script on '" + server + "' server."}`);
 		}
-		else {
+		else
+		{
 			ns.print(`${colors["red"] + "Failed to remove '" + script + "' script on '" + server + "' server!"}`);
 		}
 	}
