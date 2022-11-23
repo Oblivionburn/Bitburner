@@ -20,44 +20,39 @@ export async function main(ns)
 	var hasRoot = ns.hasRootAccess(server);
 	if (!hasRoot)
 	{
-		var portOpen = false;
-
-		if (portsRequired == 5 &&
+		var portsOpened = 0;
+		if (portsRequired >= 5 &&
 			canSQLInject)
 		{
-			portOpen = true;
+			portsOpened++;
 			ns.sqlinject(server);
 		}
-		else if (portsRequired == 4 &&
-				 canHTTPWorm)
+		if (portsRequired >= 4 &&
+			canHTTPWorm)
 		{
-			portOpen = true;
+			portsOpened++;
 			ns.httpworm(server);
 		}
-		else if (portsRequired == 3 &&
-				 canRelaySMTP)
+		if (portsRequired >= 3 &&
+			canRelaySMTP)
 		{
-			portOpen = true;
+			portsOpened++;
 			ns.relaysmtp(server);
 		}
-		else if (portsRequired == 2 &&
-				 canFTPCrack)
+		if (portsRequired >= 2 &&
+			canFTPCrack)
 		{
-			portOpen = true;
+			portsOpened++;
 			ns.ftpcrack(server);
 		}
-		else if (portsRequired == 1 &&
-				 canBruteSSH)
+		if (portsRequired >= 1 &&
+			canBruteSSH)
 		{
-			portOpen = true;
+			portsOpened++;
 			ns.brutessh(server);
 		}
-		else if (portsRequired == 0)
-		{
-			portOpen = true;
-		}
 
-		if (portOpen)
+		if (portsOpened >= portsRequired)
 		{
 			ns.nuke(server);
 
