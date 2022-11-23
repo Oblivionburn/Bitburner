@@ -67,12 +67,12 @@ export async function main(ns)
                     {
                         if (!infectedServers.includes(server))
                         {
-                            infect(ns, server);
+                            infect(ns, server, colors);
                         }
                         
                         if (!hackedServers.includes(server))
                         {
-                            consume(ns, server);
+                            consume(ns, server, colors);
                         }
                     }
                     else
