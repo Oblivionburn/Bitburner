@@ -1,3 +1,9 @@
+/*
+	BuyServer script handles purchasing new servers
+	Naming convention: PS-0, PS-1, PS-2, etc
+	RAM Cost: 5.00GB
+*/
+
 import * as ServerUtil from "ServerUtil.js";
 
 /** @param {NS} ns */

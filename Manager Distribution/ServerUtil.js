@@ -1,3 +1,8 @@
+/*
+	Utility library for getting servers in the network
+	RAM Cost: 1.95GB
+*/
+
 /** @param {NS} ns */
 
 let base_servers = [];

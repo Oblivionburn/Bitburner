@@ -1,3 +1,9 @@
+/*
+	RootAccess script handles opening ports and gaining
+		root access to whatever server passed to it.
+	RAM Cost: 2.15GB
+*/
+
 /** @param {NS} ns */
 export async function main(ns)
 {

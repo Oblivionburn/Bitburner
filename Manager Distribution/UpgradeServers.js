@@ -1,3 +1,9 @@
+/*
+	UpgradeServers script handles upgrading purchased servers
+		by deleting the server and re-purchasing with more RAM.
+	RAM Cost: 7.75GB
+*/
+
 import * as ServerUtil from "ServerUtil.js";
 
 /** @param {NS} ns */

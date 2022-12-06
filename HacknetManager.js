@@ -1,5 +1,6 @@
 /*
 	Automates purchasing of Hacknet Nodes
+	RAM Cost: 6.10GB
 */
 
 /** @param {NS} ns */

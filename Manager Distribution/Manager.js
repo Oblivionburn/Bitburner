@@ -1,3 +1,10 @@
+/*
+	Manager script is in charge of distributing scripts to
+		all the other servers and executing them
+		
+	RAM Cost: 5.70GB
+*/
+
 import * as ServerUtil from "ServerUtil.js";
 
 /** @param {NS} ns */
