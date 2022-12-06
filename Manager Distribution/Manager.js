@@ -118,12 +118,9 @@ export async function main(ns)
 		}
 
 		//Split duties:
-		//Weaken = 50%
-		var weaken_index = Math.floor((available_servers.length * 50) / 100);
-		//Grow = 30%
-		var grow_index = Math.floor(weaken_index + (available_servers.length * 30) / 100);
-		//Hack = 20%
-		var hack_index = Math.floor(grow_index + (available_servers.length * 20) / 100);
+		var weaken_index = Math.floor((available_servers.length * 20) / 100);
+		var grow_index = Math.floor(weaken_index + (available_servers.length * 70) / 100);
+		var hack_index = Math.floor(grow_index + (available_servers.length * 10) / 100);
 
 		for (let i = 0; i < available_servers.length; i++)
 		{
@@ -167,9 +164,9 @@ export async function main(ns)
 		ns.print(`${colors["white"] + "Next Purchased Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 		ns.print("\n");
 		ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
-		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (50%)"}`);
-		ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (30%)"}`);
-		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + hack_index + " (20%)"}`);
+		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (20%)"}`);
+		ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (70%)"}`);
+		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + hack_index + " (10%)"}`);
 
 		await ns.sleep(30000);
 	}
