@@ -134,7 +134,7 @@ export async function main(ns)
 		ns.print("Grow Index: " + (weaken_index + 1) + " - " + grow_index + " (30%)");
 		ns.print("Hack Index: " + (grow_index + 1) + " - " + hack_index + " (20%)");
 
-		await ns.sleep(60000);
+		await ns.sleep(30000);
 	}
 }
 
@@ -151,15 +151,21 @@ async function runScript(ns, script, server, servers_with_money)
 {
 	ns.scp(script, server, "home");
 	
+	let ramCost = ns.getScriptRam(script, server);
+	let maxRam = ns.getServerMaxRam(server);
+
 	for (let i = 0; i < servers_with_money.length; i++)
 	{
 		let server_with_money = servers_with_money[i];
-		let ramCost = ns.getScriptRam(script, server); 
-		let threads = Math.floor((ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) / ramCost);
-
+		
+		let threads = Math.floor((maxRam - ns.getServerUsedRam(server)) / ramCost);
 		if (threads > 0)
 		{
-			ns.exec(script, server, 1, server_with_money)
+			ns.exec(script, server, 1, server_with_money);
+		}
+		else
+		{
+			break;
 		}
 	}
 }
