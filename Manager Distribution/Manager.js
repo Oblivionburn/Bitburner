@@ -13,6 +13,15 @@ export async function main(ns)
 	ns.disableLog("ALL");
 	ns.tail("Manager.js", "home");
 
+	const colors = 
+    {
+		red: "\u001b[31;1m",
+		green: "\u001b[32;1m",
+		yellow: "\u001b[33;1m",
+		white: "\u001b[37;1m",
+		reset: "\u001b[0m"
+	};
+
 	//Run other scripts
 	//ns.exec("HacknetManager.js", "home");
 
@@ -59,7 +68,7 @@ export async function main(ns)
 				}
 			}
 		}
-
+		
 		//Consolidate into available_servers list
 		var total = rooted_servers_with_ram.length + purchased_servers.length;
 		if (available_servers.length < total)
@@ -80,6 +89,23 @@ export async function main(ns)
 				{
 					available_servers.push(server);
 				}
+			}
+		}
+
+		var minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
+		var maxPurchasedServerRam = 0;
+		for (let i = 0; i < purchased_servers.length; i++)
+		{
+			let server = purchased_servers[i];
+			
+			let maxRam = ns.getServerMaxRam(server);
+			if (maxRam < minPurchasedServerRam)
+			{
+				minPurchasedServerRam = maxRam;
+			}
+			if (maxRam > maxPurchasedServerRam)
+			{
+				maxPurchasedServerRam = maxRam;
 			}
 		}
 
@@ -118,21 +144,23 @@ export async function main(ns)
 			}
 		}
 
-		ns.print("Base Servers: " + base_servers.length);
+		ns.print(`${colors["white"] + "Base Servers: " + colors["green"] + base_servers.length}`);
 		ns.print("\n");
-		ns.print("Base Servers with money: " + base_servers_with_money.length);
-		ns.print("Rooted Base Servers with money: " + rooted_servers_with_money.length);
+		ns.print(`${colors["white"] + "Base Servers with money: " + colors["green"] + base_servers_with_money.length}`);
+		ns.print(`${colors["white"] + "Rooted Base Servers with money: " + colors["green"] + rooted_servers_with_money.length}`);
 		ns.print("\n");
-		ns.print("Base Servers with ram: " + base_servers_with_ram.length);
-		ns.print("Rooted Base Servers with ram: " + rooted_servers_with_ram.length);
+		ns.print(`${colors["white"] + "Base Servers with ram: " + colors["green"] + base_servers_with_ram.length}`);
+		ns.print(`${colors["white"] + "Rooted Base Servers with ram: " + colors["green"] + rooted_servers_with_ram.length}`);
 		ns.print("\n");
-		ns.print("Max Purchased Servers: " + purchasedServerNumLimit);
-		ns.print("Purchased Servers: " + purchased_servers.length);
+		ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + purchasedServerNumLimit}`);
+		ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
+		ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam}`);
+		ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam}`);
 		ns.print("\n");
-		ns.print("Total Servers Available: " + available_servers.length);
-		ns.print("Weaken Index: 0 - " + weaken_index + " (50%)");
-		ns.print("Grow Index: " + (weaken_index + 1) + " - " + grow_index + " (30%)");
-		ns.print("Hack Index: " + (grow_index + 1) + " - " + hack_index + " (20%)");
+		ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
+		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (50%)"}`);
+		ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (30%)"}`);
+		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + hack_index + " (20%)"}`);
 
 		await ns.sleep(30000);
 	}

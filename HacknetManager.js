@@ -9,6 +9,15 @@ export async function main(ns)
 	ns.disableLog("ALL");
 	ns.tail("HacknetManager.js", "home");
 
+	const colors = 
+    {
+		red: "\u001b[31;1m",
+		green: "\u001b[32;1m",
+		yellow: "\u001b[33;1m",
+		white: "\u001b[37;1m",
+		reset: "\u001b[0m"
+	};
+
 	while (true)
 	{
 		ns.clearLog();
@@ -18,9 +27,11 @@ export async function main(ns)
 		var owned = ns.hacknet.numNodes();
 		var nextNodeCost = ns.hacknet.getPurchaseNodeCost();
 
-		ns.print("Current Money: $" + money.toFixed(2));
-		ns.print("Nodes Owned: " + owned);
-		ns.print("Next Node Cost: " + nextNodeCost.toFixed(2));
+		ns.print(`${colors["white"] + "Current Money: " + colors["green"] + "$" + money.toLocaleString()}`);
+		ns.print("\n");
+		ns.print(`${colors["white"] + "Nodes Owned: " + owned}`);
+		ns.print(`${colors["white"] + "Next Node Cost: " + colors["green"] + "$" + nextNodeCost.toLocaleString()}`);
+		ns.print("\n");
 
 		if (owned < nodesMax &&
 			money >= nextNodeCost)
@@ -108,10 +119,17 @@ export async function main(ns)
 			}
 		}
 
-		ns.print("Node Levels = Min: " + minLevel + ", Max:" + maxLevel + ", Next Cost: " + nextLevelCost.toFixed(2));
-		ns.print("Node Ram = Min: " + minRam + ", Max: " + maxRam + ", Next Cost: " + nextRamCost.toFixed(2));
-		ns.print("Node Cores = Min: " + minCores + ", Max: " + maxCores + ", Next Cost: " + nextCoreCost.toFixed(2));
-
+		ns.print(`${colors["yellow"] + "Node Levels"}`);
+		ns.print(`${colors["white"] + "Min: " + minLevel + ", Max: " + maxLevel}`);
+		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextLevelCost.toLocaleString()}`);
+		ns.print("\n");
+		ns.print(`${colors["yellow"] + "Node Ram"}`);
+		ns.print(`${colors["white"] + "Min: " + minRam + ", Max: " + maxRam}`);
+		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextRamCost.toLocaleString()}`);
+		ns.print("\n");
+		ns.print(`${colors["yellow"] + "Node Cores"}`);
+		ns.print(`${colors["white"] + "Min: " + minCores + ", Max: " + maxCores}`);
+		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextCoreCost.toLocaleString()}`);
 		await ns.sleep(1);
 	}
 }
