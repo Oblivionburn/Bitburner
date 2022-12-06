@@ -36,9 +36,9 @@ export async function main(ns)
 		var minCores = 16;
 		var maxCores = 0;
 
-		var nextLevelCost = 0;
-		var nextRamCost = 0;
-		var nextCoreCost = 0;
+		var nextLevelCost = Number.MAX_SAFE_INTEGER;
+		var nextRamCost = Number.MAX_SAFE_INTEGER;
+		var nextCoreCost = Number.MAX_SAFE_INTEGER;
 
 		for (let i = 0; i < owned; i++)
 		{
@@ -73,19 +73,19 @@ export async function main(ns)
 			}
 
 			var levelCost = ns.hacknet.getLevelUpgradeCost(i, 1);
-			if (nextLevelCost < levelCost)
+			if (levelCost < nextLevelCost)
 			{
 				nextLevelCost = levelCost;
 			}
 
 			var ramCost = ns.hacknet.getRamUpgradeCost(i, 1);
-			if (nextRamCost < ramCost)
+			if (ramCost < nextRamCost)
 			{
 				nextRamCost = ramCost;
 			}
 
 			var coreCost = ns.hacknet.getCoreUpgradeCost(i, 1);
-			if (nextCoreCost < coreCost)
+			if (coreCost < nextCoreCost)
 			{
 				nextCoreCost = coreCost;
 			}

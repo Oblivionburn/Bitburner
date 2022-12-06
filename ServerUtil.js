@@ -2,31 +2,58 @@
 
 let base_servers = [];
 let base_servers_with_money = [];
+let base_servers_with_ram = [];
+let purchased_servers = [];
 
 export async function getBaseServers(ns)
 {
-	await deepScan(ns);
+	base_servers = [];
+	base_servers_with_money = [];
+	purchased_servers = [];
+	base_servers_with_ram = [];
+
+	await deep_scan(ns, "home");
+
 	return base_servers;
 }
 
-export async function getServersWithMoney(ns)
-{
-	await deepScan(ns);
-	return base_servers_with_money;
-}
-
-export async function deepScan(ns)
+export async function getBaseServersWithMoney(ns)
 {
 	base_servers = [];
 	base_servers_with_money = [];
-	
-	var purchased_servers = ns.getPurchasedServers();
+	purchased_servers = [];
+	base_servers_with_ram = [];
 
-	//Recursively scan all the servers, except Home and purchased ones
-	await deep_scan(ns, "home", purchased_servers);
+	await deep_scan(ns, "home");
+	
+	return base_servers_with_money;
 }
 
-export async function deep_scan(ns, server, purchased_servers)
+export async function getBaseServersWithRam(ns)
+{
+	base_servers = [];
+	base_servers_with_money = [];
+	purchased_servers = [];
+	base_servers_with_ram = [];
+	
+	await deep_scan(ns, "home");
+	
+	return base_servers_with_ram;
+}
+
+export async function getBoughtServers(ns)
+{
+	base_servers = [];
+	base_servers_with_money = [];
+	purchased_servers = [];
+	base_servers_with_ram = [];
+
+	await deep_scan(ns, "home");
+
+	return purchased_servers;
+}
+
+export async function deep_scan(ns, server)
 {
 	var scan_results = ns.scan(server);
 	if (scan_results.length > 0)
@@ -34,9 +61,14 @@ export async function deep_scan(ns, server, purchased_servers)
 		for (let i = 0; i < scan_results.length; i++)
 		{
 			var server = scan_results[i];
-			if (server != "home" &&
-				!purchased_servers.includes(server) &&
-				!base_servers.includes(server))
+
+			if (server.includes("PS-") &&
+				!purchased_servers.includes(server))
+			{
+				purchased_servers.push(server);
+			}
+			else if (server != "home" &&
+					 !base_servers.includes(server))
 			{
 				var maxMoney = ns.getServerMaxMoney(server);
 				if (maxMoney > 0)
@@ -44,70 +76,15 @@ export async function deep_scan(ns, server, purchased_servers)
 					base_servers_with_money.push(server);
 				}
 
+				var maxRam = ns.getServerMaxRam(server);
+				if (maxRam > 0)
+				{
+					base_servers_with_ram.push(server);
+				}
+
 				base_servers.push(server);
 				await deep_scan(ns, server);
 			}
 		}
 	}
-}
-
-export async function gainRoot(ns, server)
-{
-	//Which port do we need to open?
-	var portsRequired = ns.getServerNumPortsRequired(server);
-
-	var canBruteSSH = ns.fileExists("BruteSSH.exe", "home");
-	var canFTPCrack = ns.fileExists("FTPCrack.exe", "home");
-	var canRelaySMTP = ns.fileExists("relaySMTP.exe", "home");
-	var canHTTPWorm = ns.fileExists("HTTPWorm.exe", "home");
-	var canSQLInject = ns.fileExists("SQLInject.exe", "home");
-
-	//Do we already have root access for this server?
-	var hasRoot = ns.hasRootAccess(server);
-	if (!hasRoot)
-	{
-		var portsOpened = 0;
-		if (portsRequired >= 5 &&
-			canSQLInject)
-		{
-			portsOpened++;
-			ns.sqlinject(server);
-		}
-		if (portsRequired >= 4 &&
-			canHTTPWorm)
-		{
-			portsOpened++;
-			ns.httpworm(server);
-		}
-		if (portsRequired >= 3 &&
-			canRelaySMTP)
-		{
-			portsOpened++;
-			ns.relaysmtp(server);
-		}
-		if (portsRequired >= 2 &&
-			canFTPCrack)
-		{
-			portsOpened++;
-			ns.ftpcrack(server);
-		}
-		if (portsRequired >= 1 &&
-			canBruteSSH)
-		{
-			portsOpened++;
-			ns.brutessh(server);
-		}
-
-		if (portsOpened >= portsRequired)
-		{
-			ns.nuke(server);
-
-			//Send alert to Terminal
-			ns.tprint("Gained root access to '" + server + "' server!");
-		}
-		
-		hasRoot = ns.hasRootAccess(server);
-	}
-
-	return hasRoot;
 }
