@@ -2,7 +2,7 @@
 	Manager script is in charge of distributing scripts to
 		all the other servers and executing them
 		
-	RAM Cost: 5.70GB
+	RAM Cost: 6.45GB
 */
 
 import * as ServerUtil from "ServerUtil.js";
@@ -94,6 +94,8 @@ export async function main(ns)
 
 		var minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 		var maxPurchasedServerRam = 0;
+		var nextCost = Number.MAX_SAFE_INTEGER;
+
 		for (let i = 0; i < purchased_servers.length; i++)
 		{
 			let server = purchased_servers[i];
@@ -106,6 +108,12 @@ export async function main(ns)
 			if (maxRam > maxPurchasedServerRam)
 			{
 				maxPurchasedServerRam = maxRam;
+			}
+
+			let serverCost = ns.getPurchasedServerCost(maxRam * 2);
+			if (serverCost < nextCost)
+			{
+				nextCost = serverCost;
 			}
 		}
 
@@ -156,6 +164,7 @@ export async function main(ns)
 		ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
 		ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam}`);
 		ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam}`);
+		ns.print(`${colors["white"] + "Next Purchased Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 		ns.print("\n");
 		ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
 		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (50%)"}`);
