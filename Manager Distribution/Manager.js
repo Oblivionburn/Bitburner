@@ -97,24 +97,24 @@ export async function main(ns)
 			
 			if (i <= weaken_index)
 			{
-				removeScript(ns, "grow.js", server);
-				removeScript(ns, "hack.js", server);
+				await removeScript(ns, "grow.js", server);
+				await removeScript(ns, "hack.js", server);
 
-				runScript(ns, "weaken.js", server, rooted_servers_with_money);
+				await runScript(ns, "weaken.js", server, rooted_servers_with_money);
 			}
 			else if (i <= grow_index)
 			{
-				removeScript(ns, "weaken.js", server);
-				removeScript(ns, "hack.js", server);
+				await removeScript(ns, "weaken.js", server);
+				await removeScript(ns, "hack.js", server);
 
-				runScript(ns, "grow.js", server, rooted_servers_with_money);
+				await runScript(ns, "grow.js", server, rooted_servers_with_money);
 			}
 			else if (i <= hack_index)
 			{
-				removeScript(ns, "weaken.js", server);
-				removeScript(ns, "grow.js", server);
+				await removeScript(ns, "weaken.js", server);
+				await removeScript(ns, "grow.js", server);
 
-				runScript(ns, "hack.js", server, rooted_servers_with_money);
+				await runScript(ns, "hack.js", server, rooted_servers_with_money);
 			}
 		}
 
@@ -138,16 +138,16 @@ export async function main(ns)
 	}
 }
 
-function removeScript(ns, script, server)
+async function removeScript(ns, script, server)
 {
 	if (ns.fileExists(script, server))
 	{
-		ns.kill(script, server);
+		ns.scriptKill(script, server);
 		ns.rm(script, server);
 	}
 }
 
-function runScript(ns, script, server, servers_with_money)
+async function runScript(ns, script, server, servers_with_money)
 {
 	ns.scp(script, server, "home");
 	
