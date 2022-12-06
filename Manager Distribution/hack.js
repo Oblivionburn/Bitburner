@@ -1,3 +1,8 @@
+/*
+	Extracts money from a server
+	RAM Cost: 1.85GB
+*/
+
 /** @param {NS} ns */
 export async function main(ns)
 {

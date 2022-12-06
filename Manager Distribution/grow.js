@@ -1,3 +1,8 @@
+/*
+	Increases available money on a server
+	RAM Cost: 1.95GB
+*/
+
 /** @param {NS} ns */
 export async function main(ns)
 {
