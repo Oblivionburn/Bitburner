@@ -1,6 +1,6 @@
 /*
 	Observe changes in server stats
-	RAM Cost: 2GB
+	RAM Cost: 2.10GB
 */
 
 /** @param {NS} ns */
@@ -28,6 +28,9 @@ export async function main(ns)
 		var maxMoney = ns.getServerMaxMoney(server);
 		var securityLevel = ns.getServerSecurityLevel(server);
 		var minSecurityLevel = ns.getServerMinSecurityLevel(server);
+		var maxRam = ns.getServerMaxRam(server);
+		var usedRam = ns.getServerUsedRam(server);
+		var availableRam = maxRam - usedRam;
 
 		ns.print(`${colors["yellow"] + server}`);
 		ns.print(`${colors["white"] + "Max Money: " + colors["green"] + "$" + maxMoney.toLocaleString()}`);
@@ -35,7 +38,10 @@ export async function main(ns)
 		ns.print("\n");
 		ns.print(`${colors["white"] + "Min Security Level: " + colors["green"] + minSecurityLevel}`);
 		ns.print(`${colors["white"] + "Security Level: " + colors["green"] + securityLevel}`);
-
+		ns.print("\n");
+		ns.print(`${colors["white"] + "Max Ram: " + colors["green"] + maxRam}`);
+		ns.print(`${colors["white"] + "Used Ram: " + colors["green"] + usedRam}`);
+		ns.print(`${colors["white"] + "Available Ram: " + colors["green"] + availableRam}`);
 		await ns.sleep(1);
 	}
 }
