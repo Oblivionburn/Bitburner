@@ -22,8 +22,9 @@ export async function main(ns)
 		reset: "\u001b[0m"
 	};
 
-	//Run other scripts
-	//ns.exec("HacknetManager.js", "home");
+	var weaken_percent = 25;
+	var grow_percent = 70;
+	var hack_percent = 5;
 
 	var base_servers = await ServerUtil.getBaseServers(ns);
 	var base_servers_with_money = await ServerUtil.getBaseServersWithMoney(ns);
@@ -118,9 +119,9 @@ export async function main(ns)
 		}
 
 		//Split duties:
-		var weaken_index = Math.floor((available_servers.length * 20) / 100);
-		var grow_index = Math.floor(weaken_index + (available_servers.length * 70) / 100);
-		var hack_index = Math.floor(grow_index + (available_servers.length * 10) / 100);
+		var weaken_index = Math.floor((available_servers.length * weaken_percent) / 100);
+		var grow_index = Math.floor(weaken_index + (available_servers.length * grow_percent) / 100);
+		var hack_index = Math.floor(grow_index + (available_servers.length * hack_percent) / 100);
 
 		for (let i = 0; i < available_servers.length; i++)
 		{
@@ -164,9 +165,9 @@ export async function main(ns)
 		ns.print(`${colors["white"] + "Next Purchased Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 		ns.print("\n");
 		ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
-		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (20%)"}`);
-		ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (70%)"}`);
-		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + hack_index + " (10%)"}`);
+		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (" + weaken_percent + "%)"}`);
+		ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (" + grow_percent + "%)"}`);
+		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + hack_index + " (" + hack_percent + "%)"}`);
 
 		await ns.sleep(30000);
 	}
