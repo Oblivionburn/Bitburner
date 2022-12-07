@@ -1,6 +1,6 @@
 /*
 	Observe changes in server stats
-	RAM Cost: 2.10GB
+	RAM Cost: 2.25GB
 */
 
 /** @param {NS} ns */
@@ -31,17 +31,22 @@ export async function main(ns)
 		var maxRam = ns.getServerMaxRam(server);
 		var usedRam = ns.getServerUsedRam(server);
 		var availableRam = maxRam - usedRam;
+		var hackLevel = ns.getHackingLevel();
+		var requiredHack = ns.getServerRequiredHackingLevel(server);
 
 		ns.print(`${colors["yellow"] + server}`);
 		ns.print(`${colors["white"] + "Max Money: " + colors["green"] + "$" + maxMoney.toLocaleString()}`);
 		ns.print(`${colors["white"] + "Available Money: " + colors["green"] + "$" + availableMoney.toLocaleString()}`);
 		ns.print("\n");
-		ns.print(`${colors["white"] + "Min Security Level: " + colors["green"] + minSecurityLevel}`);
-		ns.print(`${colors["white"] + "Security Level: " + colors["green"] + securityLevel}`);
+		ns.print(`${colors["white"] + "Min Security Level: " + colors["green"] + minSecurityLevel.toFixed(2)}`);
+		ns.print(`${colors["white"] + "Security Level: " + colors["green"] + securityLevel.toFixed(2)}`);
 		ns.print("\n");
-		ns.print(`${colors["white"] + "Max Ram: " + colors["green"] + maxRam}`);
-		ns.print(`${colors["white"] + "Used Ram: " + colors["green"] + usedRam}`);
-		ns.print(`${colors["white"] + "Available Ram: " + colors["green"] + availableRam}`);
+		ns.print(`${colors["white"] + "Max Ram: " + colors["green"] + maxRam.toFixed(2) + " GB"}`);
+		ns.print(`${colors["white"] + "Used Ram: " + colors["green"] + usedRam.toFixed(2) + " GB"}`);
+		ns.print(`${colors["white"] + "Available Ram: " + colors["green"] + availableRam.toFixed(2) + " GB"}`);
+		ns.print("\n");
+		ns.print(`${colors["white"] + "Required Hacking Level: " + colors["green"] + requiredHack}`);
+		ns.print(`${colors["white"] + "Current Hacking Level: " + colors["green"] + hackLevel}`);
 		await ns.sleep(1);
 	}
 }
