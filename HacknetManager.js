@@ -120,15 +120,15 @@ export async function main(ns)
 		}
 
 		ns.print(`${colors["yellow"] + "Node Levels"}`);
-		ns.print(`${colors["white"] + "Min: " + minLevel + ", Max: " + maxLevel}`);
+		ns.print(`${colors["white"] + "Lowest: " + minLevel + ", Highest: " + maxLevel + ", Max: 200"}`);
 		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextLevelCost.toLocaleString()}`);
 		ns.print("\n");
 		ns.print(`${colors["yellow"] + "Node Ram"}`);
-		ns.print(`${colors["white"] + "Min: " + minRam + ", Max: " + maxRam}`);
+		ns.print(`${colors["white"] + "Lowest: " + minRam + ", Highest: " + maxRam + ", Max: 64"}`);
 		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextRamCost.toLocaleString()}`);
 		ns.print("\n");
 		ns.print(`${colors["yellow"] + "Node Cores"}`);
-		ns.print(`${colors["white"] + "Min: " + minCores + ", Max: " + maxCores}`);
+		ns.print(`${colors["white"] + "Lowest: " + minCores + ", Highest: " + maxCores + ", Max: 16"}`);
 		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextCoreCost.toLocaleString()}`);
 		await ns.sleep(1000);
 	}
