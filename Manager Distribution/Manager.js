@@ -93,7 +93,6 @@ export async function main(ns)
 		//Split duties:
 		let weaken_index = Math.floor((available_servers.length * weaken_percent) / 100);
 		let grow_index = Math.floor(weaken_index + (available_servers.length * grow_percent) / 100);
-		let hack_index = Math.floor(grow_index + (available_servers.length * hack_percent) / 100);
 
 		for (let i = 0; i < available_servers.length; i++)
 		{
@@ -139,9 +138,9 @@ export async function main(ns)
 		ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
 		ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (" + weaken_percent + "%)"}`);
 		ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (" + grow_percent + "%)"}`);
-		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + hack_index + " (" + hack_percent + "%)"}`);
+		ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + (available_servers.length - 1) + " (" + hack_percent + "%)"}`);
 
-		await ns.sleep(30000);
+		await ns.sleep(1000);
 	}
 }
 
