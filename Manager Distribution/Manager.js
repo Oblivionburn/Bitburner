@@ -20,7 +20,7 @@ let available_servers = [];
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail("Manager.js", "home");
+	ns.tail(ns.getScriptName(), "home");
 
 	const colors = 
     {

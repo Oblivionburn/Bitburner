@@ -11,7 +11,7 @@ import * as ServerUtil from "ServerUtil.js";
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail("ServerList.js", "home");
+	ns.tail(ns.getScriptName(), "home");
 
 	const colors = 
     {

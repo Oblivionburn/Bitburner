@@ -7,7 +7,7 @@
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail("HacknetManager.js", "home");
+	ns.tail(ns.getScriptName(), "home");
 
 	const colors = 
     {
@@ -130,6 +130,6 @@ export async function main(ns)
 		ns.print(`${colors["yellow"] + "Node Cores"}`);
 		ns.print(`${colors["white"] + "Min: " + minCores + ", Max: " + maxCores}`);
 		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextCoreCost.toLocaleString()}`);
-		await ns.sleep(1);
+		await ns.sleep(1000);
 	}
 }
