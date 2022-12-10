@@ -78,7 +78,7 @@ export async function main(ns)
                     else
                     {
                         //Remote execute our root script on this server
-                        if (ns.exec("root.js", "home", 1, server) > 0)
+                        if (ns.exec("RootAccess.js", "home", 1, server) > 0)
                         {
                             rootAccess = ns.hasRootAccess(server);
                             if (!rootAccess)
