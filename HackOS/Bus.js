@@ -1,8 +1,13 @@
+/*
+    Queues and routes packets being sent between hardware
+    RAM Cost: 1.60GB
+*/
+
 import {Packet} from "./HackOS/Packet.js";
 
 let queue = [];
 
-export var portMap = 
+export const portMap = 
 {
     "Void":    0,
     "CPU IN":  1,
@@ -42,6 +47,7 @@ export async function main(ns)
 
 async function Pull(ns)
 {
+    //Scan all the OUT ports for packets
     for (let i = 5; i <= 8; i++)
     {
         let port = ns.getPortHandle(i);
@@ -49,7 +55,7 @@ async function Pull(ns)
         {
             let packet = JSON.parse(port.read());
             packet = Object.assign(Packet.prototype, packet);
-            ns.print("'" + packet.request + "' Packet receieved from: " + packet.source);
+            ns.print("'" + packet.Request + "' Packet receieved from: " + packet.Source);
             queue.push(packet);
         }
     }
@@ -59,18 +65,23 @@ async function Push(ns)
 {
     if (queue.length > 0)
     {
-        let packet = queue[0];
-        
-        let portNum = portMap[packet.destination + " IN"];
+        let object = queue.shift();
+        let packet = Object.assign(Packet.prototype, object);
+
+        let portNum = portMap[packet.Destination + " IN"];
         if (portNum != null)
         {
-            ns.print("Routing '" + packet.request + "' Packet from " + packet.source + " to " + packet.destination + "...");
+            ns.print("Routing '" + packet.Request + "' Packet from " + packet.Source + " to " + packet.Destination + "...");
 
             let port = ns.getPortHandle(portNum);
             let data = JSON.stringify(packet);
-            port.write(data);
-
-            ns.print("Sent packet to: " + packet.destination);
+            if (port.tryWrite(data))
+            {
+                ns.print("Sent packet to: " + packet.Destination);
+                return true;
+            }
         }
     }
+
+    return false;
 }

@@ -1,39 +1,72 @@
-import {Bus} from "Bus.js";
-import {Packet} from "Packet.js";
+/*
+    Processes instructions sent from other hardware
+	RAM Cost: 1.60GB
+*/
+
+import {portMap} from "./HackOS/Bus.js";
+import {Packet} from "./HackOS/Packet.js";
 
 /** @param {NS} ns */
 export async function main(ns)
 {
+    ns.disableLog("ALL");
+    ns.tail(ns.getScriptName(), "home");
+
+    let newPacket = new Packet("SCAN_DEEP", "CPU", "NET", null);
+    await Send(ns, newPacket);
+    
     while (true)
     {
-        let packet = Receive();
+        ns.clearLog();
+        ns.print("Waiting for instructions...");
+
+        let packet = CheckReceived(ns);
         if (packet != null)
         {
             //Do stuff
+			
+			await ns.sleep(200);
         }
-
-        await ns.sleep(1000);
+		else
+		{
+			await ns.sleep(1);
+		}
     }
 }
 
-async function Receive()
+async function CheckReceived(ns)
 {
-    let inputPort = ns.getPortHandle(Bus.portMap["CPU IN"]);
-    if (!inputPort.empty())
+    let portNum = portMap["CPU IN"];
+    if (portNum != null)
     {
-        let packet = JSON.parse(port.read());
-        packet = Object.assign(Packet.prototype, packet);
-        return packet;
-    }
+        ns.print("Listening for incoming packets on port " + portNum + "...");
 
+        let inputPort = ns.getPortHandle(portNum);
+        if (!inputPort.empty())
+        {
+            let object = JSON.parse(port.read());
+            let packet = Object.assign(Packet.prototype, object);
+            return packet;
+        }
+    }
+    
     return null;
 }
 
-async function Send(packetName, destination, data)
+async function Send(ns, packet)
 {
-    let outputPort = ns.getPortHandle(Bus.portMap["CPU OUT"]);
-    let packet = new Packet(packetName, "CPU", destination, data);
-    let packetData = JSON.stringify(packet);
+    let portNum = portMap["CPU OUT"];
+    if (portNum != null)
+    {
+        let outputPort = ns.getPortHandle(portNum);
+        let packetData = JSON.stringify(packet);
+        
+        if (outputPort.tryWrite(packetData))
+        {
+            ns.print("Sent '" + packet.Name + "' Packet to: " + packet.Destination);
+            return true;
+        }
+    }
     
-    return outputPort.tryWrite(packetData);
+    return false;
 }
