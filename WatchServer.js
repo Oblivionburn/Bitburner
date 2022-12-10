@@ -9,7 +9,7 @@ export async function main(ns)
 	var server = ns.args[0];
 
 	ns.disableLog("ALL");
-	ns.tail("WatchServer.js", "home", server);
+	ns.tail(ns.getScriptName(), "home", server);
 
 	const colors = 
     {
