@@ -7,6 +7,15 @@
 
 import * as ServerUtil from "ServerUtil.js";
 
+let base_servers = [];
+let base_servers_with_money = [];
+let base_servers_with_ram = [];
+let rooted_servers = [];
+let rooted_servers_with_money = [];
+let rooted_servers_with_ram = [];
+let purchased_servers = [];
+let available_servers = [];
+
 /** @param {NS} ns */
 export async function main(ns)
 {
@@ -22,17 +31,13 @@ export async function main(ns)
 		reset: "\u001b[0m"
 	};
 
-	var weaken_percent = 25;
-	var grow_percent = 70;
-	var hack_percent = 5;
+	let weaken_percent = 55;
+	let grow_percent = 40;
+	let hack_percent = 5;
 
-	var base_servers = await ServerUtil.getBaseServers(ns);
-	var base_servers_with_money = await ServerUtil.getBaseServersWithMoney(ns);
-	var base_servers_with_ram = await ServerUtil.getBaseServersWithRam(ns);
-	var rooted_servers = [];
-	var rooted_servers_with_money = [];
-	var rooted_servers_with_ram = [];
-	var available_servers = [];
+	base_servers = await ServerUtil.getBaseServers(ns);
+	base_servers_with_money = await ServerUtil.getBaseServersWithMoney(ns);
+	base_servers_with_ram = await ServerUtil.getBaseServersWithRam(ns);
 
 	while (true)
 	{
@@ -41,61 +46,19 @@ export async function main(ns)
 		ns.exec("BuyServer.js", "home");
 		ns.exec("UpgradeServers.js", "home");
 
-		var purchased_servers = await ServerUtil.getBoughtServers(ns);
-		var purchasedServerNumLimit = ns.getPurchasedServerLimit();
+		purchased_servers = await ServerUtil.getBoughtServers(ns);
+		let purchasedServerNumLimit = ns.getPurchasedServerLimit();
 
 		//Root all the servers
-		for (let i = 0; i < base_servers.length; i++)
-		{
-			let server = base_servers[i];
-			if (!rooted_servers.includes(server))
-			{
-				ns.exec("RootAccess.js", "home", 1, server);
-				if (ns.hasRootAccess(server))
-				{
-					rooted_servers.push(server);
-
-					if (base_servers_with_ram.includes(server) &&
-						!rooted_servers_with_ram.includes(server))
-					{
-						rooted_servers_with_ram.push(server);
-					}
-					
-					if (base_servers_with_money.includes(server) &&
-						!rooted_servers_with_money.includes(server))
-					{
-						rooted_servers_with_money.push(server);
-					}
-				}
-			}
-		}
-		
+		await rootServers(ns);
+		await checkRootedServers();
+		 
 		//Consolidate into available_servers list
-		var total = rooted_servers_with_ram.length + purchased_servers.length;
-		if (available_servers.length < total)
-		{
-			for (let i = 0; i < rooted_servers_with_ram.length; i++)
-			{
-				let server = rooted_servers_with_ram[i];
-				if (!available_servers.includes(server))
-				{
-					available_servers.push(server);
-				}
-			}
+		await consolidateServers();
 
-			for (let i = 0; i < purchased_servers.length; i++)
-			{
-				let server = purchased_servers[i];
-				if (!available_servers.includes(server))
-				{
-					available_servers.push(server);
-				}
-			}
-		}
-
-		var minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
-		var maxPurchasedServerRam = 0;
-		var nextCost = Number.MAX_SAFE_INTEGER;
+		let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
+		let maxPurchasedServerRam = 0;
+		let nextCost = Number.MAX_SAFE_INTEGER;
 
 		for (let i = 0; i < purchased_servers.length; i++)
 		{
@@ -119,9 +82,9 @@ export async function main(ns)
 		}
 
 		//Split duties:
-		var weaken_index = Math.floor((available_servers.length * weaken_percent) / 100);
-		var grow_index = Math.floor(weaken_index + (available_servers.length * grow_percent) / 100);
-		var hack_index = Math.floor(grow_index + (available_servers.length * hack_percent) / 100);
+		let weaken_index = Math.floor((available_servers.length * weaken_percent) / 100);
+		let grow_index = Math.floor(weaken_index + (available_servers.length * grow_percent) / 100);
+		let hack_index = Math.floor(grow_index + (available_servers.length * hack_percent) / 100);
 
 		for (let i = 0; i < available_servers.length; i++)
 		{
@@ -132,21 +95,21 @@ export async function main(ns)
 				await removeScript(ns, "grow.js", server);
 				await removeScript(ns, "hack.js", server);
 
-				await runScript(ns, "weaken.js", server, rooted_servers_with_money);
+				await runScript(ns, "weaken.js", server);
 			}
 			else if (i <= grow_index)
 			{
 				await removeScript(ns, "weaken.js", server);
 				await removeScript(ns, "hack.js", server);
 
-				await runScript(ns, "grow.js", server, rooted_servers_with_money);
+				await runScript(ns, "grow.js", server);
 			}
-			else if (i <= hack_index)
+			else
 			{
 				await removeScript(ns, "weaken.js", server);
 				await removeScript(ns, "grow.js", server);
 
-				await runScript(ns, "hack.js", server, rooted_servers_with_money);
+				await runScript(ns, "hack.js", server);
 			}
 		}
 
@@ -173,7 +136,78 @@ export async function main(ns)
 	}
 }
 
-async function removeScript(ns, script, server)
+async function rootServers(ns)
+{
+	if (rooted_servers.length < base_servers.length)
+	{
+		for (let i = 0; i < base_servers.length; i++)
+		{
+			let server = base_servers[i];
+			if (!rooted_servers.includes(server))
+			{
+				if (!ns.hasRootAccess(server))
+				{
+					ns.exec("RootAccess.js", "home", 1, server);
+				}
+				else
+				{
+					rooted_servers.push(server);
+				}
+			}
+		}
+	}
+}
+
+async function checkRootedServers()
+{
+	if (base_servers_with_ram.length > rooted_servers_with_ram.length ||
+		base_servers_with_money.length > rooted_servers_with_money.length)
+	{
+		for (let i = 0; i < rooted_servers.length; i++)
+		{
+			let server = rooted_servers[i];
+
+			if (base_servers_with_ram.includes(server) &&
+				!rooted_servers_with_ram.includes(server))
+			{
+				rooted_servers_with_ram.push(server);
+			}
+			
+			if (base_servers_with_money.includes(server) &&
+				!rooted_servers_with_money.includes(server))
+			{
+				rooted_servers_with_money.push(server);
+			}
+		}
+	}
+}
+
+async function consolidateServers()
+{
+	var total = rooted_servers_with_ram.length + purchased_servers.length;
+	if (available_servers.length < total)
+	{
+		for (let i = 0; i < rooted_servers_with_ram.length; i++)
+		{
+			let server = rooted_servers_with_ram[i];
+			if (!available_servers.includes(server))
+			{
+				available_servers.push(server);
+			}
+		}
+
+		for (let i = 0; i < purchased_servers.length; i++)
+		{
+			let server = purchased_servers[i];
+			if (!available_servers.includes(server))
+			{
+				available_servers.push(server);
+			}
+		}
+	}
+}
+
+export async function removeScript(ns, script, server)
 {
 	if (ns.fileExists(script, server))
 	{
@@ -182,19 +216,29 @@ async function removeScript(ns, script, server)
 	}
 }
 
-async function runScript(ns, script, server, servers_with_money)
+export async function runScript(ns, script, server)
 {
 	ns.scp(script, server, "home");
 	
 	let ramCost = ns.getScriptRam(script, server);
 	let maxRam = ns.getServerMaxRam(server);
+	let serverCount = rooted_servers_with_money.length;
+	let allServers = ramCost * serverCount;
+	let threadsForAllServers = Math.floor(maxRam / allServers);
+	let allServersRamCost = threadsForAllServers * ramCost;
 
-	for (let i = 0; i < servers_with_money.length; i++)
+	for (let i = 0; i < serverCount; i++)
 	{
-		let server_with_money = servers_with_money[i];
-		
-		let threads = Math.floor((maxRam - ns.getServerUsedRam(server)) / ramCost);
-		if (threads > 0)
+		let server_with_money = rooted_servers_with_money[i];
+		let usedRam = ns.getServerUsedRam(server);
+		let availableRam = maxRam - usedRam;
+
+		if (availableRam >= allServersRamCost &&
+			threadsForAllServers > 0)
+		{
+			ns.exec(script, server, threadsForAllServers, server_with_money);
+		}
+		else if (availableRam >= ramCost)
 		{
 			ns.exec(script, server, 1, server_with_money);
 		}
