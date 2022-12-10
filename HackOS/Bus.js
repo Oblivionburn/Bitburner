@@ -20,45 +20,56 @@ export const portMap =
     "RAM OUT": 8
 };
 
+export const colors = 
+{
+    red: "\u001b[31;1m",
+    green: "\u001b[32;1m",
+    yellow: "\u001b[33;1m",
+    white: "\u001b[37;1m",
+    reset: "\u001b[0m"
+};
+
 /** @param {NS} ns */
 export async function main(ns)
 {
     ns.disableLog("ALL");
     ns.tail(ns.getScriptName(), "home");
+    ns.clearLog();
 
     while (true)
     {
-        ns.clearLog();
-
         if (queue.length > 0)
         {
-            ns.print("Packets in queue: " + queue.length);
             await Push(ns);
-            await ns.sleep(200);
         }
         else
         {
-            ns.print("Listening for incoming packets...");
             await Pull(ns);
-            await ns.sleep(1);
         }
+
+        await ns.sleep(100);
     }
 }
 
 async function Pull(ns)
 {
+    let received = false;
+
     //Scan all the OUT ports for packets
     for (let i = 5; i <= 8; i++)
     {
         let port = ns.getPortHandle(i);
         if (!port.empty())
         {
+            received = true;
+
             let packet = JSON.parse(port.read());
             packet = Object.assign(Packet.prototype, packet);
-            ns.print("'" + packet.Request + "' Packet receieved from: " + packet.Source);
             queue.push(packet);
         }
     }
+
+    return received;
 }
 
 async function Push(ns)
@@ -71,13 +82,13 @@ async function Push(ns)
         let portNum = portMap[packet.Destination + " IN"];
         if (portNum != null)
         {
-            ns.print("Routing '" + packet.Request + "' Packet from " + packet.Source + " to " + packet.Destination + "...");
-
             let port = ns.getPortHandle(portNum);
             let data = JSON.stringify(packet);
             if (port.tryWrite(data))
             {
-                ns.print("Sent packet to: " + packet.Destination);
+                ns.print(`${colors["white"] + "- Routing " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
+                    " Packet from " + colors["yellow"] + packet.Source + colors["white"] + " to " + colors["yellow"] + 
+                    packet.Destination + colors["white"] + "."}`);
                 return true;
             }
         }

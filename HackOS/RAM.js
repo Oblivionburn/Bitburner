@@ -3,7 +3,7 @@
 	RAM Cost: 1.60GB
 */
 
-import {portMap} from "./HackOS/Bus.js";
+import {portMap,colors} from "./HackOS/Bus.js";
 import {Packet} from "./HackOS/Packet.js";
 import {Data} from "./HackOS/Data.js";
 
@@ -18,9 +18,23 @@ export async function main(ns)
     while (true)
     {
         ns.clearLog();
-        ns.print("Packets in memory: " + memory.length);
+        ns.print(`${colors["yellow"] + "Packets in memory:"}`);
+        if (memory.length > 0)
+        {
+            for (let i = 0; i < memory.length; i++)
+            {
+                let data = memory[i];
+                ns.print(`${colors["white"] + data.Name}`);
+            }
+        }
+        else
+        {
+            ns.print(`${colors["red"] + "Nothing"}`);
+        }
+        
+        ns.print("\n");
 
-        let packet = CheckReceived(ns);
+        let packet = await CheckReceived(ns);
         if (packet != null)
         {
             if (packet.Request == "STORE")
@@ -31,61 +45,57 @@ export async function main(ns)
 			{
 				await Return(ns, packet);
 			}
-
-            await ns.sleep(200);
         }
-        else
-        {
-            await ns.sleep(1);
-        }
+        
+        await ns.sleep(100);
     }
 }
 
 async function Store(ns, packet)
 {
-    let data = Object.assign(Data.prototype, JSON.parse(packet.Data));
-
-    if (memory.length > 0)
+    if (packet.Data != null)
     {
-        let found = false;
-
-        for (let i = 0; i < memory.length; i++)
+        if (memory.length > 0)
         {
-            let memoryData = Object.assign(Data.prototype, memory[i]);
-            if (memoryData.Name == data.Name)
+            let found = false;
+
+            for (let i = 0; i < memory.length; i++)
             {
-                found = true;
-                memory[i] = data;
-                break;
+                let memoryData = Object.assign(Data.prototype, memory[i]);
+                if (memoryData.Name == packet.Data.Name)
+                {
+                    found = true;
+                    memory[i] = packet.Data;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                memory.push(packet.Data);
             }
         }
-
-        if (!found)
+        else
         {
-            memory.push(data);
+            memory.push(packet.Data);
         }
     }
-    else
-    {
-        memory.push(data);
-    }
-    
-    ns.print("Received '" + data.Name + "' data from " + packet.Source + ".");
 }
 
 async function Return(ns, packet)
 {
-    let dataObject = Object.assign(Data.prototype, JSON.parse(packet.data));
-    ns.print("Received request for '" + dataObject.Name + "' data from " + packet.Source + ".");
-
     for (let i = 0; i < memory.length; i++)
     {
-        let memoryData = Object.assign(Data.prototype, memory[i]);
-        if (memoryData.Name == dataObject.Name)
+        let memoryData = memory[i];
+        if (memoryData.Name == packet.Data.Name)
         {
             memory.splice(i, 1); 
-            let newPacket = new Packet("REQUESTED DATA", "RAM", packet.Source, memoryData);
-            await Send(ns, newPacket);
+
+            packet.Destination = packet.Source;
+            packet.Source = "RAM";
+            packet.Data = memoryData;
+            await Send(ns, packet);
+
             break;
         }
     }
@@ -96,18 +106,21 @@ async function CheckReceived(ns)
     let portNum = portMap["RAM IN"];
     if (portNum != null)
     {
-        ns.print("Listening for incoming packets on port " + portNum + "...");
-
-        let inputPort = ns.getPortHandle(portNum);
-        if (!inputPort.empty())
+        let port = ns.getPortHandle(portNum);
+        if (!port.empty())
         {
-            let object = JSON.parse(port.read());
+			let objectString = port.read();
+            let object = JSON.parse(objectString);
             let packet = Object.assign(Packet.prototype, object);
+
+            ns.print(`${colors["white"] + "- Received " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
+                " Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
+
             return packet;
         }
     }
-    
-    return null;
+
+	return null;
 }
 
 async function Send(ns, packet)
@@ -117,12 +130,18 @@ async function Send(ns, packet)
     {
         let outputPort = ns.getPortHandle(portNum);
         let packetData = JSON.stringify(packet);
-        
-        if (outputPort.tryWrite(packetData))
+
+		if (outputPort.tryWrite(packetData))
         {
-            ns.print("Sent '" + packet.Data.Name + "' data to: " + packet.Destination);
+            ns.print(`${colors["white"] + "- Sent " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
+                " Packet to " + colors["yellow"] + packet.Destination + colors["white"] + "."}`);
             return true;
         }
+		else
+		{
+            ns.print(`${colors["red"] + "- Failed to Send " + colors["green"] + "'" + packet.Request + "'" + colors["red"] + 
+                " Packet to " + colors["yellow"] + packet.Destination + colors["red"] + "."}`);
+		}
     }
     
     return false;
