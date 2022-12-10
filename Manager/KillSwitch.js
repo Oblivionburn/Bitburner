@@ -5,7 +5,7 @@
 	RAM Cost: 4.05GB
 */
 
-import * as ServerUtil from "ServerUtil.js";
+import * as ServerUtil from "./Manager/ServerUtil.js";
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -14,18 +14,18 @@ export async function main(ns)
 	for (let i = 0; i < base_servers.length; i++)
 	{
 		let server = base_servers[i];
-		removeScript(ns, "weaken.js", server);
-		removeScript(ns, "grow.js", server);
-		removeScript(ns, "hack.js", server);
+		removeScript(ns, "/Manager/Weaken.js", server);
+		removeScript(ns, "/Manager/Grow.js", server);
+		removeScript(ns, "/Manager/Hack.js", server);
 	}
 
 	let purchased_servers = await ServerUtil.getBoughtServers(ns);
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
-		removeScript(ns, "weaken.js", server);
-		removeScript(ns, "grow.js", server);
-		removeScript(ns, "hack.js", server);
+		removeScript(ns, "/Manager/Weaken.js", server);
+		removeScript(ns, "/Manager/Grow.js", server);
+		removeScript(ns, "/Manager/Hack.js", server);
 	}
 }
 

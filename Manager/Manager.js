@@ -5,7 +5,7 @@
 	RAM Cost: 6.45GB
 */
 
-import * as ServerUtil from "ServerUtil.js";
+import * as ServerUtil from "./Manager/ServerUtil.js";
 
 let base_servers = [];
 let base_servers_with_money = [];
@@ -31,9 +31,9 @@ export async function main(ns)
 		reset: "\u001b[0m"
 	};
 
-	let weaken_percent = 55;
+	let weaken_percent = 50;
 	let grow_percent = 40;
-	let hack_percent = 5;
+	let hack_percent = 100 - weaken_percent - grow_percent;
 
 	base_servers = await ServerUtil.getBaseServers(ns);
 	base_servers_with_money = await ServerUtil.getBaseServersWithMoney(ns);
@@ -43,8 +43,8 @@ export async function main(ns)
 	{
 		ns.clearLog();
 
-		ns.exec("BuyServer.js", "home");
-		ns.exec("UpgradeServers.js", "home");
+		ns.exec("/Manager/BuyServer.js", "home");
+		ns.exec("/Manager/UpgradeServers.js", "home");
 
 		purchased_servers = await ServerUtil.getBoughtServers(ns);
 		let purchasedServerNumLimit = ns.getPurchasedServerLimit();
@@ -100,24 +100,24 @@ export async function main(ns)
 			
 			if (i <= weaken_index)
 			{
-				await removeScript(ns, "grow.js", server);
-				await removeScript(ns, "hack.js", server);
+				await removeScript(ns, "/Manager/Grow.js", server);
+				await removeScript(ns, "/Manager/Hack.js", server);
 
-				await runScript(ns, "weaken.js", server);
+				await runScript(ns, "/Manager/Weaken.js", server);
 			}
 			else if (i <= grow_index)
 			{
-				await removeScript(ns, "weaken.js", server);
-				await removeScript(ns, "hack.js", server);
+				await removeScript(ns, "/Manager/Weaken.js", server);
+				await removeScript(ns, "/Manager/Hack.js", server);
 
-				await runScript(ns, "grow.js", server);
+				await runScript(ns, "/Manager/Grow.js", server);
 			}
 			else
 			{
-				await removeScript(ns, "weaken.js", server);
-				await removeScript(ns, "grow.js", server);
+				await removeScript(ns, "/Manager/Weaken.js", server);
+				await removeScript(ns, "/Manager/Grow.js", server);
 
-				await runScript(ns, "hack.js", server);
+				await runScript(ns, "/Manager/Hack.js", server);
 			}
 		}
 
@@ -155,7 +155,7 @@ async function rootServers(ns)
 			{
 				if (!ns.hasRootAccess(server))
 				{
-					ns.exec("RootAccess.js", "home", 1, server);
+					ns.exec("/Manager/RootAccess.js", "home", 1, server);
 				}
 				else
 				{

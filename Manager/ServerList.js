@@ -5,7 +5,7 @@
 	RAM Cost: 1.95GB
 */
 
-import * as ServerUtil from "ServerUtil.js";
+import * as ServerUtil from "./Manager/ServerUtil.js";
 
 /** @param {NS} ns */
 export async function main(ns)
