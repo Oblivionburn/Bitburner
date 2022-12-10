@@ -81,6 +81,15 @@ export async function main(ns)
 			}
 		}
 
+		if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
+		{
+			minPurchasedServerRam = 0;
+		}
+		if (nextCost == Number.MAX_SAFE_INTEGER)
+		{
+			nextCost = ns.getPurchasedServerCost(2);
+		}
+
 		//Split duties:
 		let weaken_index = Math.floor((available_servers.length * weaken_percent) / 100);
 		let grow_index = Math.floor(weaken_index + (available_servers.length * grow_percent) / 100);
