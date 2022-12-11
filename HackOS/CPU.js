@@ -30,7 +30,7 @@ export async function main(ns)
         await Send(ns, new Packet("ROOT_SERVERS", "CPU", "NET", null));
         await Send(ns, new Packet("BUY_SERVER", "CPU", "BANK", null));
         await Send(ns, new Packet("UPGRADE_SERVERS", "CPU", "BANK", null));
-
+        
         if (!requestedAvailableServers)
 		{
 			requestedAvailableServers = await Send(ns, new Packet("RETURN_AVAILABLE", "CPU", "NET", null));

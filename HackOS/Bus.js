@@ -5,8 +5,6 @@
 
 import {Packet} from "./HackOS/Packet.js";
 
-let queue = [];
-
 export const portMap = 
 {
     "Void":     0,
@@ -36,68 +34,34 @@ export const colors =
 export async function main(ns)
 {
     ns.disableLog("ALL");
-    //ns.tail(ns.getScriptName(), "home");
 
     while (true)
     {
         ns.clearLog();
-        ns.print("Queued: " + queue.length);
 
-        if (queue.length > 0)
+        for (let i = 6; i <= 11; i++)
         {
-            await Push(ns);
-        }
-        else
-        {
-            await Pull(ns);
-        }
-
-        await ns.sleep(500);
-    }
-}
-
-async function Pull(ns)
-{
-    let received = false;
-
-    //Scan all the OUT ports for packets
-    for (let i = 6; i <= 11; i++)
-    {
-        let port = ns.getPortHandle(i);
-        if (!port.empty())
-        {
-            received = true;
-
-            let packet = JSON.parse(port.read());
-            packet = Object.assign(Packet.prototype, packet);
-            queue.push(packet);
-        }
-    }
-
-    return received;
-}
-
-async function Push(ns)
-{
-    if (queue.length > 0)
-    {
-        let object = queue.shift();
-        let packet = Object.assign(Packet.prototype, object);
-
-        let portNum = portMap[packet.Destination + " IN"];
-        if (portNum != null)
-        {
-            let port = ns.getPortHandle(portNum);
-            let data = JSON.stringify(packet);
-            if (port.tryWrite(data))
+            let outPort = ns.getPortHandle(i);
+            while (!outPort.empty())
             {
-                ns.print(`${colors["white"] + "- Routing " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                    " Packet from " + colors["yellow"] + packet.Source + colors["white"] + " to " + colors["yellow"] + 
-                    packet.Destination + colors["white"] + "."}`);
-                return true;
+                let objectString = outPort.read();
+                let object = JSON.parse(objectString);
+                let packet = Object.assign(Packet.prototype, object);
+
+                let portNum = portMap[packet.Destination + " IN"];
+                if (portNum != null)
+                {
+                    let inPort = ns.getPortHandle(portNum);
+                    if (inPort.tryWrite(objectString))
+                    {
+                        ns.print(`${colors["white"] + "- Routing " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
+                            " Packet from " + colors["yellow"] + packet.Source + colors["white"] + " to " + colors["yellow"] + 
+                            packet.Destination + colors["white"] + "."}`);
+                    }
+                }
             }
         }
-    }
 
-    return false;
+        await ns.sleep(100);
+    }
 }

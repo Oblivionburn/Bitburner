@@ -15,12 +15,12 @@ var serverNumLimit = 0;
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.clearLog();
-
 	serverNumLimit = ns.getPurchasedServerLimit();
 
     while (true)
     {
+        ns.clearLog();
+
 		if (!requestedServers &&
 			purchased_servers.length < serverNumLimit)
 		{
@@ -45,7 +45,7 @@ export async function main(ns)
             }
         }
 
-		await ns.sleep(100);
+		await ns.sleep(1000);
     }
 }
 
