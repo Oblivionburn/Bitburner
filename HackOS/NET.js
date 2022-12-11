@@ -157,6 +157,16 @@ export async function main(ns)
     }
 }
 
+export async function GetBaseServers()
+{
+	return base_servers;
+}
+
+export async function GetPurchasedServers()
+{
+	return purchased_servers;
+}
+
 async function Log(ns)
 {
 	let purchasedServerNumLimit = ns.getPurchasedServerLimit();
