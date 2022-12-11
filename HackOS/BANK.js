@@ -3,9 +3,13 @@
 	RAM Cost: 7.50GB
 */
 
-import {portMap,colors} from "./HackOS/Bus.js";
+import * as Bus from "./HackOS/Bus.js";
+import {colors} from "./HackOS/UI.js";
 import {Packet} from "./HackOS/Packet.js";
 import {Data} from "./HackOS/Data.js";
+
+let inPort = "BANK IN";
+let outPort = "BANK OUT";
 
 let purchased_servers = [];
 let requestedServers = false;
@@ -15,16 +19,18 @@ var serverNumLimit = 0;
 export async function main(ns)
 {
 	ns.disableLog("ALL");
+	ns.tail(ns.getScriptName(), "home");
+
 	serverNumLimit = ns.getPurchasedServerLimit();
 
     while (true)
     {
 		if (!requestedServers)
 		{
-			requestedServers = await Send(ns, new Packet("RETURN_PURCHASED", "BANK", "NET", null));
+			requestedServers = await Bus.Send(ns, new Packet("RETURN", "BANK", "RAM", new Data("PURCHASED_SERVERS", null)), outPort);
 		}
 
-        let packet = await CheckReceived(ns);
+        let packet = await Bus.CheckReceived(ns, inPort);
         if (packet != null)
         {
             if (packet.Request == "BUY_SERVER")
@@ -35,17 +41,28 @@ export async function main(ns)
             {
                 await UpgradeServers(ns);
             }
-            else if (packet.Request == "RETURN_PURCHASED")
+            else if (packet.Request == "RETURN")
             {
-                purchased_servers = packet.Data.List;
-				requestedServers = false;
+				if (packet.Data.Name == "PURCHASED_SERVERS")
+				{
+					purchased_servers = packet.Data.List;
+					requestedServers = false;
+				}
+            }
+			else if (packet.Request == "RETURN_FAILED")
+            {
+                if (packet.Data.Name == "PURCHASED_SERVERS")
+                {
+                    await Bus.Send(ns, new Packet("SCAN_PURCHASED", "BANK", "NET", null), outPort);
+                    requestedServers = false;
+                }
             }
         }
         
 		ns.clearLog();
         await Log(ns);
 
-		await ns.sleep(200);
+		await ns.sleep(1);
     }
 }
 
@@ -127,50 +144,4 @@ async function UpgradeServers(ns)
 			}
 		}
 	}
-}
-
-async function CheckReceived(ns)
-{
-    let portNum = portMap["BANK IN"];
-    if (portNum != null)
-    {
-        let port = ns.getPortHandle(portNum);
-        if (!port.empty())
-        {
-			let objectString = port.read();
-            let object = JSON.parse(objectString);
-            let packet = Object.assign(Packet.prototype, object);
-
-            ns.print(`${colors["white"] + "- Received " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
-
-            return packet;
-        }
-    }
-
-	return null;
-}
-
-async function Send(ns, packet)
-{
-    let portNum = portMap["BANK OUT"];
-    if (portNum != null)
-    {
-        let outputPort = ns.getPortHandle(portNum);
-        let packetData = JSON.stringify(packet);
-
-		if (outputPort.tryWrite(packetData))
-        {
-            ns.print(`${colors["white"] + "- Sent " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["white"] + "."}`);
-            return true;
-        }
-		else
-		{
-            ns.print(`${colors["red"] + "- Failed to Send " + colors["green"] + "'" + packet.Request + "'" + colors["red"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["red"] + "."}`);
-		}
-    }
-    
-    return false;
 }

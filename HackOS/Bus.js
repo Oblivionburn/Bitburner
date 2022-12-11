@@ -4,6 +4,7 @@
 */
 
 import {Packet} from "./HackOS/Packet.js";
+import {colors} from "./HackOS/UI.js";
 
 export const portMap = 
 {
@@ -18,16 +19,7 @@ export const portMap =
     "NET OUT":  8,
     "RAM OUT":  9,
     "BANK OUT": 10,
-    "UI OUT":   11,
-};
-
-export const colors = 
-{
-    red: "\u001b[31;1m",
-    green: "\u001b[32;1m",
-    yellow: "\u001b[33;1m",
-    white: "\u001b[37;1m",
-    reset: "\u001b[0m"
+    "OS OUT":   11,
 };
 
 /** @param {NS} ns */
@@ -62,6 +54,52 @@ export async function main(ns)
             }
         }
 
-        await ns.sleep(100);
+        await ns.sleep(1);
     }
+}
+
+export async function CheckReceived(ns, portName)
+{
+    let portNum = portMap[portName];
+    if (portNum != null)
+    {
+        let inPort = ns.getPortHandle(portNum);
+        if (!inPort.empty())
+        {
+			let objectString = inPort.read();
+            let object = JSON.parse(objectString);
+            let packet = Object.assign(Packet.prototype, object);
+
+            ns.print(`${colors["white"] + "- Received " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
+                " Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
+
+            return packet;
+        }
+    }
+
+	return null;
+}
+
+export async function Send(ns, packet, portName)
+{
+    let portNum = portMap[portName];
+    if (portNum != null)
+    {
+        let outPort = ns.getPortHandle(portNum);
+        let packetData = JSON.stringify(packet);
+
+		if (outPort.tryWrite(packetData))
+        {
+            ns.print(`${colors["white"] + "- Sent " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
+                " Packet to " + colors["yellow"] + packet.Destination + colors["white"] + "."}`);
+            return true;
+        }
+		else
+		{
+            ns.print(`${colors["red"] + "- Failed to Send " + colors["green"] + "'" + packet.Request + "'" + colors["red"] + 
+                " Packet to " + colors["yellow"] + packet.Destination + colors["red"] + "."}`);
+		}
+    }
+    
+    return false;
 }

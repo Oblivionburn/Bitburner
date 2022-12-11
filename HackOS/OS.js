@@ -3,9 +3,14 @@
 	RAM Cost: 5.00GB
 */
 
-import {portMap,colors} from "./HackOS/Bus.js";
+import * as Bus from "./HackOS/Bus.js";
+import {colors} from "./HackOS/UI.js";
 import * as NET from "./HackOS/NET.js";
 import {Packet} from "./HackOS/Packet.js";
+
+let base_servers = [];
+let purchased_servers = [];
+let outPort = "OS OUT";
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -38,7 +43,9 @@ export async function main(ns)
 
 			if (command)
 			{
-				await Send(ns, new Packet(command, "UI", choice, null));
+				await Bus.Send(ns, new Packet(command, "UI", choice, null), outPort);
+				ns.tprint(`${colors["white"] + "- Sent " + colors["green"] + "'" + command + "'" + colors["white"] + 
+                	" Packet to " + colors["yellow"] + choice + colors["white"] + "."}`);
 			}
 		}
 	}
@@ -55,11 +62,13 @@ async function Boot(ns)
 	ns.exec("/HackOS/NET.js", "home");
 	ns.exec("/HackOS/BANK.js", "home");
 	ns.exec("/HackOS/CPU.js", "home");
+
+	ns.tprint(`${colors["white"] + "HackOS has booted."}`);
 }
 
 async function ShutDown(ns)
 {
-	let base_servers = await NET.GetBaseServers(ns);
+	await DeepScan(ns);
 	for (let i = 0; i < base_servers.length; i++)
 	{
 		let server = base_servers[i];
@@ -68,7 +77,7 @@ async function ShutDown(ns)
 		RemoveScript(ns, "/HackOS/Hack.js", server);
 	}
 
-	let purchased_servers = await NET.GetPurchasedServers(ns);
+	await Scan_PurchasedServers(ns);
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
@@ -80,12 +89,43 @@ async function ShutDown(ns)
 	if (base_servers.length > 0 ||
 		purchased_servers.length > 0)
 	{
-		ns.scriptKill("/HackOS/CPU.js", "home");
-		ns.scriptKill("/HackOS/BANK.js", "home");
-		ns.scriptKill("/HackOS/NET.js", "home");
-		ns.scriptKill("/HackOS/RAM.js", "home");
-		ns.scriptKill("/HackOS/Bus.js", "home");
+		let cpu = ns.getRunningScript("/HackOS/CPU.js", "home");
+		if (cpu != null)
+		{
+			ns.closeTail(cpu.pid);
+			ns.scriptKill("/HackOS/CPU.js", "home");
+		}
+
+		let bank = ns.getRunningScript("/HackOS/BANK.js", "home");
+		if (bank != null)
+		{
+			ns.closeTail(bank.pid);
+			ns.scriptKill("/HackOS/BANK.js", "home");
+		}
+		
+		let net = ns.getRunningScript("/HackOS/NET.js", "home");
+		if (net != null)
+		{
+			ns.closeTail(net.pid);
+			ns.scriptKill("/HackOS/NET.js", "home");
+		}
+		
+		let ram = ns.getRunningScript("/HackOS/RAM.js", "home");
+		if (ram != null)
+		{
+			ns.closeTail(ram.pid);
+			ns.scriptKill("/HackOS/RAM.js", "home");
+		}
+
+		let bus = ns.getRunningScript("/HackOS/Bus.js", "home");
+		if (bus != null)
+		{
+			ns.closeTail(bus.pid);
+			ns.scriptKill("/HackOS/Bus.js", "home");
+		}
 	}
+
+	ns.tprint(`${colors["white"] + "HackOS has shut down."}`);
 }
 
 async function RemoveScript(ns, script, server)
@@ -97,26 +137,41 @@ async function RemoveScript(ns, script, server)
 	}
 }
 
-async function Send(ns, packet)
+async function DeepScan(ns, server)
 {
-    let portNum = portMap["UI OUT"];
-    if (portNum != null)
-    {
-        let outputPort = ns.getPortHandle(portNum);
-        let packetData = JSON.stringify(packet);
-
-		if (outputPort.tryWrite(packetData))
-        {
-            ns.tprint(`${colors["white"] + "- Sent " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["white"] + "."}`);
-            return true;
-        }
-		else
+	let scan_results = ns.scan(server);
+	if (scan_results.length > 0)
+	{
+		for (let i = 0; i < scan_results.length; i++)
 		{
-            ns.tprint(`${colors["red"] + "- Failed to Send " + colors["green"] + "'" + packet.Request + "'" + colors["red"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["red"] + "."}`);
+			let server = scan_results[i];
+
+			if (server != "home" &&
+				!server.includes("PS-") &&
+				!base_servers.includes(server))
+			{
+				base_servers.push(server);
+				await DeepScan(ns, server);
+			}
 		}
-    }
-    
-    return false;
+	}
+}
+
+async function Scan_PurchasedServers(ns)
+{
+	let scan_results = ns.scan("home");
+	let scanCount = scan_results.length;
+	if (scanCount > 0)
+	{
+		for (let i = 0; i < scanCount; i++)
+		{
+			let server = scan_results[i];
+
+			if (server.includes("PS-") &&
+				!purchased_servers.includes(server))
+			{
+				purchased_servers.push(server);
+			}
+		}
+	}
 }

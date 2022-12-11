@@ -3,7 +3,8 @@
 	RAM Cost: 5.80GB
 */
 
-import {portMap,colors} from "./HackOS/Bus.js";
+import * as Bus from "./HackOS/Bus.js";
+import {colors} from "./HackOS/UI.js";
 import {Packet} from "./HackOS/Packet.js";
 import {Data} from "./HackOS/Data.js";
 
@@ -13,6 +14,9 @@ let requestedAvailableServers = false;
 let rooted_servers_with_money = [];
 let requestedMoneyServers = false;
 
+let inPort = "CPU IN";
+let outPort = "CPU OUT";
+
 let weaken_percent = 50;
 let grow_percent = 40;
 let hack_percent = 100 - weaken_percent - grow_percent;
@@ -21,42 +25,53 @@ let hack_percent = 100 - weaken_percent - grow_percent;
 export async function main(ns)
 {
     ns.disableLog("ALL");
+    ns.tail(ns.getScriptName(), "home");
 
     await Init(ns);
     
     while (true)
     {
-        await Send(ns, new Packet("ROOT_SERVERS", "CPU", "NET", null));
-        await Send(ns, new Packet("BUY_SERVER", "CPU", "BANK", null));
-        await Send(ns, new Packet("UPGRADE_SERVERS", "CPU", "BANK", null));
+        await Bus.Send(ns, new Packet("ROOT_SERVERS", "CPU", "NET", null), outPort);
+        await Bus.Send(ns, new Packet("BUY_SERVER", "CPU", "BANK", null), outPort);
+        await Bus.Send(ns, new Packet("UPGRADE_SERVERS", "CPU", "BANK", null), outPort);
         
         if (!requestedAvailableServers)
 		{
-			requestedAvailableServers = await Send(ns, new Packet("RETURN_AVAILABLE", "CPU", "NET", null));
+			requestedAvailableServers = await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("AVAILABLE_SERVERS", null)), outPort);
 		}
         if (!requestedMoneyServers)
         {
-            requestedMoneyServers = await Send(ns, new Packet("RETURN_ROOTED_WITH_MONEY", "CPU", "NET", null));
+            requestedMoneyServers = await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("ROOTED_SERVERS_WITH_MONEY", null)), outPort);
         }
 
-        let packet = await CheckReceived(ns);
+        let packet = await Bus.CheckReceived(ns, inPort);
         if (packet != null)
         {
-            if (packet.Request == "RETURN_BASE" ||
-                packet.Request == "RETURN_BASE_WITH_MONEY" ||
-                packet.Request == "RETURN_BASE_WITH_RAM")
+            if (packet.Request == "RETURN")
             {
-                await Send(ns, new Packet("STORE", "CPU", "RAM", packet.Data));
+                if (packet.Data.Name == "AVAILABLE_SERVERS")
+                {
+                    available_servers = packet.Data.List;
+                    requestedAvailableServers = false;
+                }
+                else if (packet.Data.Name == "ROOTED_SERVERS_WITH_MONEY")
+                {
+                    rooted_servers_with_money = packet.Data.List;
+                    requestedMoneyServers = false;
+                }
             }
-            else if (packet.Request == "RETURN_AVAILABLE")
+            else if (packet.Request == "RETURN_FAILED")
             {
-                available_servers = packet.Data.List;
-				requestedAvailableServers = false;
-            }
-            else if (packet.Request == "RETURN_ROOTED_WITH_MONEY")
-            {
-                rooted_servers_with_money = packet.Data.List;
-				requestedMoneyServers = false;
+                if (packet.Data.Name == "AVAILABLE_SERVERS")
+                {
+                    await Bus.Send(ns, new Packet("SCAN_AVAILABLE", "CPU", "NET", null), outPort);
+                    requestedAvailableServers = false;
+                }
+                else if (packet.Data.Name == "ROOTED_SERVERS_WITH_MONEY")
+                {
+                    await Bus.Send(ns, new Packet("SCAN_ROOTED", "CPU", "NET", null), outPort);
+                    requestedMoneyServers = false;
+                }
             }
         }
 
@@ -69,11 +84,11 @@ export async function main(ns)
 
 async function Init(ns)
 {
-    await Send(ns, new Packet("SCAN_DEEP", "CPU", "NET", null));
-    await Send(ns, new Packet("SCAN_PURCHASED", "CPU", "NET", null));
-    await Send(ns, new Packet("RETURN_BASE", "CPU", "NET", null));
-    await Send(ns, new Packet("RETURN_BASE_WITH_MONEY", "CPU", "NET", null));
-    await Send(ns, new Packet("RETURN_BASE_WITH_RAM", "CPU", "NET", null));
+    await Bus.Send(ns, new Packet("SCAN_DEEP", "CPU", "NET", null), outPort);
+    await Bus.Send(ns, new Packet("SCAN_PURCHASED", "CPU", "NET", null), outPort);
+    await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("BASE_SERVERS", null)), outPort);
+    await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("BASE_SERVERS_WITH_MONEY", null)), outPort);
+    await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("BASE_SERVERS_WITH_RAM", null)), outPort);
 }
 
 async function ManageHacking(ns)
@@ -179,50 +194,4 @@ async function RunScript(ns, script, server)
             }
         }
     }
-}
-
-async function CheckReceived(ns)
-{
-    let portNum = portMap["CPU IN"];
-    if (portNum != null)
-    {
-        let port = ns.getPortHandle(portNum);
-        if (!port.empty())
-        {
-			let objectString = port.read();
-            let object = JSON.parse(objectString);
-            let packet = Object.assign(Packet.prototype, object);
-
-            ns.print(`${colors["white"] + "- Received " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
-
-            return packet;
-        }
-    }
-
-	return null;
-}
-
-async function Send(ns, packet)
-{
-    let portNum = portMap["CPU OUT"];
-    if (portNum != null)
-    {
-        let outputPort = ns.getPortHandle(portNum);
-        let packetData = JSON.stringify(packet);
-
-		if (outputPort.tryWrite(packetData))
-        {
-            ns.print(`${colors["white"] + "- Sent " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["white"] + "."}`);
-            return true;
-        }
-		else
-		{
-            ns.print(`${colors["red"] + "- Failed to Send " + colors["green"] + "'" + packet.Request + "'" + colors["red"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["red"] + "."}`);
-		}
-    }
-    
-    return false;
 }

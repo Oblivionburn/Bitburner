@@ -5,9 +5,13 @@
 	RAM Cost: 2.80GB
 */
 
-import {portMap,colors} from "./HackOS/Bus.js";
+import * as Bus from "./HackOS/Bus.js";
+import {colors} from "./HackOS/UI.js";
 import {Packet} from "./HackOS/Packet.js";
 import {Data} from "./HackOS/Data.js";
+
+let inPort = "NET IN";
+let outPort = "NET OUT";
 
 let base_servers = [];
 let base_servers_with_money = [];
@@ -26,127 +30,45 @@ export async function main(ns)
 
     while (true)
     {
-		let packet = await CheckReceived(ns);
+		let packet = await Bus.CheckReceived(ns, inPort);
         if (packet != null)
         {
 			if (packet.Request == "ROOT_SERVERS")
 			{
 				await RootServers(ns);
 				await Scan_RootedServers(ns);
+
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS", rooted_servers)), outPort);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_MONEY", rooted_servers_with_money)), outPort);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_RAM", rooted_servers_with_ram)), outPort);
 			}
             else if (packet.Request == "SCAN_DEEP")
             {
                 await DeepScan(ns, "home");
+
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS", base_servers)), outPort);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS_WITH_MONEY", base_servers_with_money)), outPort);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS_WITH_RAM", base_servers_with_ram)), outPort);
             }
 			else if (packet.Request == "SCAN_ROOTED")
             {
                 await Scan_RootedServers(ns);
+
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS", rooted_servers)), outPort);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_MONEY", rooted_servers_with_money)), outPort);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_RAM", rooted_servers_with_ram)), outPort);
             }
 			else if (packet.Request == "SCAN_PURCHASED")
             {
                 await Scan_PurchasedServers(ns);
+
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("PURCHASED_SERVERS", purchased_servers)), outPort);
             }
 			else if (packet.Request == "SCAN_AVAILABLE")
 			{
 				await Scan_AvailableServers(ns);
-			}
-			else if (packet.Request == "RETURN_BASE")
-			{
-				if (base_servers.length == 0)
-				{
-					await DeepScan(ns, "home");
-				}
 
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("BASE_SERVERS", base_servers);
-				
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_BASE_WITH_MONEY")
-			{
-				if (base_servers_with_money.length == 0)
-				{
-					await DeepScan(ns, "home");
-				}
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("BASE_SERVERS_WITH_MONEY", base_servers_with_money);
-
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_BASE_WITH_RAM")
-			{
-				if (base_servers_with_ram.length == 0)
-				{
-					await DeepScan(ns, "home");
-				}
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("BASE_SERVERS_WITH_RAM", base_servers_with_ram);
-
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_ROOTED")
-			{
-				if (rooted_servers.length == 0)
-				{
-					await Scan_RootedServers(ns);
-				}
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("ROOTED_SERVERS", rooted_servers);
-
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_ROOTED_WITH_MONEY")
-			{
-				if (rooted_servers_with_money.length == 0)
-				{
-					await Scan_RootedServers(ns);
-				}
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("ROOTED_SERVERS_WITH_MONEY", rooted_servers_with_money);
-
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_ROOTED_WITH_RAM")
-			{
-				if (rooted_servers_with_ram.length == 0)
-				{
-					await Scan_RootedServers(ns);
-				}
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("ROOTED_SERVERS_WITH_RAM", rooted_servers_with_ram);
-
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_PURCHASED")
-			{
-				await Scan_PurchasedServers(ns);
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("PURCHASED_SERVERS", purchased_servers);
-
-				await Send(ns, packet);
-			}
-			else if (packet.Request == "RETURN_AVAILABLE")
-			{
-				await Scan_AvailableServers(ns);
-
-				packet.Destination = packet.Source;
-				packet.Source = "NET";
-				packet.Data = new Data("AVAILABLE_SERVERS", available_servers);
-
-				await Send(ns, packet);
+				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("AVAILABLE_SERVERS", available_servers)), outPort);
 			}
         }
 
@@ -155,26 +77,6 @@ export async function main(ns)
 		
 		await ns.sleep(100);
     }
-}
-
-export async function GetBaseServers(ns)
-{
-	base_servers = [];
-	base_servers_with_money = [];
-	base_servers_with_ram = [];
-
-	await DeepScan(ns, "home");
-
-	return base_servers;
-}
-
-export async function GetPurchasedServers(ns)
-{
-	purchased_servers = [];
-
-	await Scan_PurchasedServers(ns);
-
-	return purchased_servers;
 }
 
 async function Log(ns)
@@ -226,7 +128,7 @@ async function Log(ns)
 	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
 	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam}`);
 	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam}`);
-	ns.print(`${colors["white"] + "Next Purchased Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
+	ns.print(`${colors["white"] + "Next Buy/Upgrade Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
 	ns.print("\n");
@@ -416,50 +318,4 @@ async function Scan_AvailableServers(ns)
 			}
 		}
 	}
-}
-
-async function CheckReceived(ns)
-{
-    let portNum = portMap["NET IN"];
-    if (portNum != null)
-    {
-        let port = ns.getPortHandle(portNum);
-        if (!port.empty())
-        {
-			let objectString = port.read();
-            let object = JSON.parse(objectString);
-            let packet = Object.assign(Packet.prototype, object);
-
-            ns.print(`${colors["white"] + "- Received " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
-
-            return packet;
-        }
-    }
-
-	return null;
-}
-
-async function Send(ns, packet)
-{
-    let portNum = portMap["NET OUT"];
-    if (portNum != null)
-    {
-        let outputPort = ns.getPortHandle(portNum);
-        let packetData = JSON.stringify(packet);
-
-		if (outputPort.tryWrite(packetData))
-        {
-            ns.print(`${colors["white"] + "- Sent " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["white"] + "."}`);
-            return true;
-        }
-		else
-		{
-            ns.print(`${colors["red"] + "- Failed to Send " + colors["green"] + "'" + packet.Request + "'" + colors["red"] + 
-                " Packet to " + colors["yellow"] + packet.Destination + colors["red"] + "."}`);
-		}
-    }
-    
-    return false;
 }
