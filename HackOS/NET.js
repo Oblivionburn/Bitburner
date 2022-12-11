@@ -2,7 +2,7 @@
     This hardware is able to scan the network,
 		maintain a map of the network,
 		and return requests for mapped data.
-	RAM Cost: 2.00GB
+	RAM Cost: 2.05GB
 */
 
 import {portMap,colors} from "./HackOS/Bus.js";
