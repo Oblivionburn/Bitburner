@@ -2,7 +2,7 @@
 RAM Cost: 4.00 GB
 
 Notes:
-- Global shared by all instances of the worm
+- Global variables shared by all instances of the worm
     so we don't have to bother with checking for
     the worm already being on a server or not (less RAM usage)
 */
