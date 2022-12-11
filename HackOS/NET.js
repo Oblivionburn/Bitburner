@@ -2,7 +2,7 @@
     NET handles scanning the network,
 		maintaining a map of the network,
 		and returning requests for network data.
-	RAM Cost: 2.30GB
+	RAM Cost: 2.80GB
 */
 
 import {portMap,colors} from "./HackOS/Bus.js";
@@ -149,7 +149,7 @@ export async function main(ns)
 				packet.Source = "NET";
 				packet.Data = new Data("AVAILABLE_SERVERS", available_servers);
 
-				await Send(ns, newPacket);
+				await Send(ns, packet);
 			}
         }
 

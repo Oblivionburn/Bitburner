@@ -1,6 +1,6 @@
 /*
     CPU processes instructions sent from other hardware
-	RAM Cost: 7.50GB
+	RAM Cost: 5.80GB
 */
 
 import {portMap,colors} from "./HackOS/Bus.js";
@@ -13,14 +13,15 @@ let requestedAvailableServers = false;
 let rooted_servers_with_money = [];
 let requestedMoneyServers = false;
 
+let weaken_percent = 50;
+let grow_percent = 40;
+let hack_percent = 100 - weaken_percent - grow_percent;
+
 /** @param {NS} ns */
 export async function main(ns)
 {
     ns.disableLog("ALL");
     ns.tail(ns.getScriptName(), "home");
-
-    let weaken_percent = 50;
-	let grow_percent = 40;
 
     await Init(ns);
     
@@ -39,9 +40,6 @@ export async function main(ns)
             requestedMoneyServers = await Send(ns, new Packet("RETURN_ROOTED_WITH_MONEY", "CPU", "NET", null));
         }
 
-        ns.clearLog();
-        await ManageHacking(ns);
-
         let packet = await CheckReceived(ns);
         if (packet != null)
         {
@@ -53,15 +51,18 @@ export async function main(ns)
             }
             else if (packet.Request == "RETURN_AVAILABLE")
             {
-                available_servers = packet.Data.Data;
+                available_servers = packet.Data.List;
 				requestedAvailableServers = false;
             }
             else if (packet.Request == "RETURN_ROOTED_WITH_MONEY")
             {
-                rooted_servers_with_money = packet.Data.Data;
+                rooted_servers_with_money = packet.Data.List;
 				requestedMoneyServers = false;
             }
         }
+
+        ns.clearLog();
+        await ManageHacking(ns);
 
 		await ns.sleep(1000);
     }
@@ -94,12 +95,12 @@ async function ManageHacking(ns)
         
         if (i <= weaken_index)
         {
-            await RemoveScript(ns, "Grow.js", server);
-            await RemoveScript(ns, "Hack.js", server);
+            await RemoveScript(ns, "/HackOS/Grow.js", server);
+            await RemoveScript(ns, "/HackOS/Hack.js", server);
 
-            if (ns.fileExists("Weaken.js", server))
+            if (ns.fileExists("/HackOS/Weaken.js", server))
             {
-                await RunScript(ns, "Weaken.js", server);
+                await RunScript(ns, "/HackOS/Weaken.js", server);
             }
             else
             {
@@ -108,12 +109,12 @@ async function ManageHacking(ns)
         }
         else if (i <= grow_index)
         {
-            await RemoveScript(ns, "Weaken.js", server);
-            await RemoveScript(ns, "Hack.js", server);
+            await RemoveScript(ns, "/HackOS/Weaken.js", server);
+            await RemoveScript(ns, "/HackOS/Hack.js", server);
 
-            if (ns.fileExists("Grow.js", server))
+            if (ns.fileExists("/HackOS/Grow.js", server))
             {
-                await RunScript(ns, "Grow.js", server);
+                await RunScript(ns, "/HackOS/Grow.js", server);
             }
             else
             {
@@ -122,12 +123,12 @@ async function ManageHacking(ns)
         }
         else
         {
-            await RemoveScript(ns, "Weaken.js", server);
-            await RemoveScript(ns, "Grow.js", server);
+            await RemoveScript(ns, "/HackOS/Weaken.js", server);
+            await RemoveScript(ns, "/HackOS/Grow.js", server);
 
-            if (ns.fileExists("Hack.js", server))
+            if (ns.fileExists("/HackOS/Hack.js", server))
             {
-                await RunScript(ns, "Hack.js", server);
+                await RunScript(ns, "/HackOS/Hack.js", server);
             }
             else
             {

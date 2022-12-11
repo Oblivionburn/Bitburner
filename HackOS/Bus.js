@@ -36,10 +36,12 @@ export async function main(ns)
 {
     ns.disableLog("ALL");
     //ns.tail(ns.getScriptName(), "home");
-    ns.clearLog();
 
     while (true)
     {
+        ns.clearLog();
+        ns.print("Queued: " + queue.length);
+
         if (queue.length > 0)
         {
             await Push(ns);
@@ -49,7 +51,7 @@ export async function main(ns)
             await Pull(ns);
         }
 
-        await ns.sleep(1);
+        await ns.sleep(100);
     }
 }
 
