@@ -26,9 +26,6 @@ export async function main(ns)
 
     while (true)
     {
-        ns.clearLog();
-		await Log(ns);
-
 		let packet = await CheckReceived(ns);
         if (packet != null)
         {
@@ -153,6 +150,9 @@ export async function main(ns)
 			}
         }
 
+		ns.clearLog();
+		await Log(ns);
+		
 		await ns.sleep(100);
     }
 }
