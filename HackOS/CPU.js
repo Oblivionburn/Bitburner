@@ -85,10 +85,9 @@ export async function main(ns)
 async function Init(ns)
 {
     await Bus.Send(ns, new Packet("SCAN_DEEP", "CPU", "NET", null), outPort);
+    await Bus.Send(ns, new Packet("SCAN_ROOTED", "CPU", "NET", null), outPort);
     await Bus.Send(ns, new Packet("SCAN_PURCHASED", "CPU", "NET", null), outPort);
-    await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("BASE_SERVERS", null)), outPort);
-    await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("BASE_SERVERS_WITH_MONEY", null)), outPort);
-    await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("BASE_SERVERS_WITH_RAM", null)), outPort);
+    await Bus.Send(ns, new Packet("SCAN_AVAILABLE", "CPU", "NET", null), outPort);
 }
 
 async function ManageHacking(ns)
