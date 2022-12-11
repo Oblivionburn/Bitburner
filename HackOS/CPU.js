@@ -21,7 +21,6 @@ let hack_percent = 100 - weaken_percent - grow_percent;
 export async function main(ns)
 {
     ns.disableLog("ALL");
-    ns.tail(ns.getScriptName(), "home");
 
     await Init(ns);
     

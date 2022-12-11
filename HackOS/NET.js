@@ -157,13 +157,23 @@ export async function main(ns)
     }
 }
 
-export async function GetBaseServers()
+export async function GetBaseServers(ns)
 {
+	base_servers = [];
+	base_servers_with_money = [];
+	base_servers_with_ram = [];
+
+	await DeepScan(ns, "home");
+
 	return base_servers;
 }
 
-export async function GetPurchasedServers()
+export async function GetPurchasedServers(ns)
 {
+	purchased_servers = [];
+
+	await Scan_PurchasedServers(ns);
+
 	return purchased_servers;
 }
 

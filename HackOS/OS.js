@@ -4,7 +4,7 @@
 */
 
 import {portMap,colors} from "./HackOS/Bus.js";
-import {GetBaseServers,GetPurchasedServers} from "./HackOS/NET.js";
+import * as NET from "./HackOS/NET.js";
 import {Packet} from "./HackOS/Packet.js";
 
 /** @param {NS} ns */
@@ -59,13 +59,7 @@ async function Boot(ns)
 
 async function ShutDown(ns)
 {
-	ns.scriptKill("/HackOS/CPU.js", "home");
-	ns.scriptKill("/HackOS/BANK.js", "home");
-	ns.scriptKill("/HackOS/NET.js", "home");
-	ns.scriptKill("/HackOS/RAM.js", "home");
-	ns.scriptKill("/HackOS/Bus.js", "home");
-
-	let base_servers = await GetBaseServers();
+	let base_servers = await NET.GetBaseServers(ns);
 	for (let i = 0; i < base_servers.length; i++)
 	{
 		let server = base_servers[i];
@@ -74,13 +68,23 @@ async function ShutDown(ns)
 		RemoveScript(ns, "/HackOS/Hack.js", server);
 	}
 
-	let purchased_servers = await GetPurchasedServers();
+	let purchased_servers = await NET.GetPurchasedServers(ns);
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
 		RemoveScript(ns, "/HackOS/Weaken.js", server);
 		RemoveScript(ns, "/HackOS/Grow.js", server);
 		RemoveScript(ns, "/HackOS/Hack.js", server);
+	}
+
+	if (base_servers.length > 0 ||
+		purchased_servers.length > 0)
+	{
+		ns.scriptKill("/HackOS/CPU.js", "home");
+		ns.scriptKill("/HackOS/BANK.js", "home");
+		ns.scriptKill("/HackOS/NET.js", "home");
+		ns.scriptKill("/HackOS/RAM.js", "home");
+		ns.scriptKill("/HackOS/Bus.js", "home");
 	}
 }
 
