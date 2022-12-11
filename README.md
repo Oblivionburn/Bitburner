@@ -1,7 +1,7 @@
 # Bitburner
 ### NS2 scripts for the game Bitburner
 - HackOS Total Running RAM: 19.3GB
-  - HackOS is a management system with a port-based message queue to handle traffic between the various components
+  - HackOS is a management system with a port-based message queue to handle traffic between the workers
 - Manager Total Running RAM: 6.45GB
   - Manager is a centralized control system that handles script distribution/execution across all servers
 - Worm Total Running RAM: 4GB
