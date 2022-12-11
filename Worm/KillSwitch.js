@@ -2,7 +2,7 @@
 RAM Cost: 3.90 GB
 
 Notes:
-- The worm-removal script is used for removing
+- The KillSwitch script is used for removing
 	all instances of the worm and hack scripts
 	across all the servers the worm has been to
 	or that it's copied the hack script to.
@@ -24,14 +24,10 @@ export async function main(ns)
 
 	serversChecked = [];
 
-	ns.disableLog("sleep");
-	ns.disableLog("scan");
-	ns.disableLog("fileExists");
-	ns.disableLog("scriptKill");
-	ns.disableLog("rm");
+	ns.disableLog("ALL");
 	ns.clearLog();
 
-	ns.tail("worm-removal.js", "home");
+	ns.tail(ns.getScriptName(), "home");
 	
 	await recursiveSweep(ns, "home", colors);
 	ns.tprint("Worm/Hack removal finished!");
@@ -48,8 +44,8 @@ export async function recursiveSweep(ns, server, colors)
 			if (server != "home" &&
 				!serversChecked.includes(server))
 			{
-				removeScript(ns, server, "worm.js", colors);
-				removeScript(ns, server, "hack.js", colors);
+				removeScript(ns, server, "/Worm/Worm.js", colors);
+				removeScript(ns, server, "/Worm/Hack.js", colors);
 
 				serversChecked.push(server);
 				ns.print(`${colors["white"] + "'" + server + "' server is clean."}`);

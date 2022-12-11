@@ -22,16 +22,7 @@ export async function main(ns)
 		reset: "\u001b[0m"
 	};
 
-    ns.disableLog("scan");
-    ns.disableLog("hasRootAccess");
-    ns.disableLog("getServerMaxRam");
-    ns.disableLog("getServerUsedRam");
-    ns.disableLog("getScriptRam");
-    ns.disableLog("scp");
-    ns.disableLog("exec");
-    ns.disableLog("sleep");
-    ns.disableLog("getScriptName");
-    ns.disableLog("tryWritePort");
+    ns.disableLog("ALL");
     ns.clearLog();
     
     var currentServer = ns.getHostname();
@@ -45,8 +36,6 @@ export async function main(ns)
     while(true)
     {
         ns.clearLog();
-
-        await broadcastVersion(ns, currentServer);
 
         //What servers are we connected to?
         var servers = ns.scan();
@@ -78,7 +67,7 @@ export async function main(ns)
                     else
                     {
                         //Remote execute our root script on this server
-                        if (ns.exec("RootAccess.js", "home", 1, server) > 0)
+                        if (ns.exec("/Worm/RootAccess.js", "home", 1, server) > 0)
                         {
                             rootAccess = ns.hasRootAccess(server);
                             if (!rootAccess)
@@ -117,17 +106,17 @@ function infect(ns, server, colors)
     if (!deadend)
     {
         //Can we run our worm on the server?
-        var wormRamCost = ns.getScriptRam("worm.js", "home");
+        var wormRamCost = ns.getScriptRam("/Worm/Worm.js", "home");
         var canRunWorm = getAvailableRam(ns, server) > wormRamCost;
 
         //Can we spread to the server?
         if (canRunWorm) 
         {
             //Add copy of worm on the server
-            if (ns.scp("worm.js", server))
+            if (ns.scp("/Worm/Worm.js", server))
             {
                 //Start running the new worm copy on the other server
-                if (ns.exec("worm.js", server) > 0)
+                if (ns.exec("/Worm/Worm.js", server) > 0)
                 {
                     ns.print(`${colors["green"] + "Worm spread to '" + server + "' server!"}`);
 
@@ -159,17 +148,17 @@ function infect(ns, server, colors)
 function consume(ns, server, colors)
 {
     //Can we run our hack script on the server?
-    var hackRamCost = ns.getScriptRam("hack.js", "home"); 
+    var hackRamCost = ns.getScriptRam("/Worm/Hack.js", "home"); 
     var hackThreads = Math.floor(getAvailableRam(ns, server) / hackRamCost);
     var canRunHack = hackThreads > 0;
 
     if (canRunHack)
     {
         //Copy our hack script to the server
-        if (ns.scp("hack.js", server, "home"))
+        if (ns.scp("/Worm/Hack.js", server, "home"))
         {
             //Start running hack script on the server with as many threads as possible
-            if (ns.exec("hack.js", server, hackThreads) > 0)
+            if (ns.exec("/Worm/Hack.js", server, hackThreads) > 0)
             {
                 ns.print(`${colors["green"] + "Started hacking '" + server + "' server with " + hackThreads + " threads!"}`);
 
@@ -202,22 +191,4 @@ function consume(ns, server, colors)
 function getAvailableRam(ns, server)
 {
     return ns.getServerMaxRam(server) - ns.getServerUsedRam(server);
-}
-
-export async function broadcastVersion(ns, server)
-{
-    var scriptName = ns.getScriptName();
-    var broadcast = "BROADCAST!SERVER:" + server + ";SCRIPT:" + scriptName + ";VERSION:" + getVersion();
-    var success = await ns.tryWritePort(1, broadcast);
-    if (success)
-    {
-        ns.print("Broadcasted data: " + broadcast);
-    }
-    
-    return success;
-}
-
-export function getVersion()
-{
-    return 1;
 }

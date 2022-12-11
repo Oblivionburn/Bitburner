@@ -33,8 +33,6 @@ export async function main(ns)
 
         ns.clearLog();
 
-        await broadcastVersion(ns, server);
-
         await logShouldWeaken(ns, colors, shouldWeaken, securityLevel, minSecurityLevel);
         await logShouldGrow(ns, colors, shouldGrow, availableMoney, maxMoney);
         await logCanHack(ns, colors, canHack, hackLevel, requiredHackLevel);
@@ -56,24 +54,6 @@ export async function main(ns)
             await ns.sleep(1000);
         }
     }
-}
-
-export async function broadcastVersion(ns, server)
-{
-    var scriptName = ns.getScriptName();
-    var broadcast = "BROADCAST!SERVER:" + server + ";SCRIPT:" + scriptName + ";VERSION:" + getVersion();
-    var success = await ns.tryWritePort(1, broadcast);
-    if (success)
-    {
-        ns.print("Broadcasted data: " + broadcast);
-    }
-    
-    return success;
-}
-
-export function getVersion()
-{
-    return 1;
 }
 
 async function logShouldWeaken(ns, colors, shouldWeaken, securityLevel, minSecurityLevel)
