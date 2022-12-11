@@ -19,12 +19,9 @@ export async function main(ns)
 
     while (true)
     {
-        ns.clearLog();
-
-		if (!requestedServers &&
-			purchased_servers.length < serverNumLimit)
+		if (!requestedServers)
 		{
-			requestedServers = await Send(ns, new Packet("RETURN_PURCHASED_SERVERS", "BANK", "NET", null));
+			requestedServers = await Send(ns, new Packet("RETURN_PURCHASED", "BANK", "NET", null));
 		}
 
         let packet = await CheckReceived(ns);
@@ -38,15 +35,61 @@ export async function main(ns)
             {
                 await UpgradeServers(ns);
             }
-            else if (packet.Request == "RETURN_PURCHASED_SERVERS")
+            else if (packet.Request == "RETURN_PURCHASED")
             {
-                purchased_servers = packet.Data.Data;
+                purchased_servers = packet.Data.List;
 				requestedServers = false;
             }
         }
+        
+		ns.clearLog();
+        await Log(ns);
 
-		await ns.sleep(1000);
+		await ns.sleep(200);
     }
+}
+
+async function Log(ns)
+{
+	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
+	let maxPurchasedServerRam = 0;
+	let nextCost = Number.MAX_SAFE_INTEGER;
+
+	for (let i = 0; i < purchased_servers.length; i++)
+	{
+		let server = purchased_servers[i];
+		
+		let maxRam = ns.getServerMaxRam(server);
+		if (maxRam < minPurchasedServerRam)
+		{
+			minPurchasedServerRam = maxRam;
+		}
+		if (maxRam > maxPurchasedServerRam)
+		{
+			maxPurchasedServerRam = maxRam;
+		}
+
+		let serverCost = ns.getPurchasedServerCost(maxRam * 2);
+		if (serverCost < nextCost)
+		{
+			nextCost = serverCost;
+		}
+	}
+
+	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
+	{
+		minPurchasedServerRam = 0;
+	}
+	if (nextCost == Number.MAX_SAFE_INTEGER)
+	{
+		nextCost = ns.getPurchasedServerCost(2);
+	}
+
+    ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + serverNumLimit}`);
+	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
+	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam}`);
+	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam}`);
+	ns.print(`${colors["white"] + "Next Purchased Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 }
 
 async function BuyServer(ns)
