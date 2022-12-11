@@ -1,6 +1,6 @@
 /*
 	Interface for Hack OS
-	RAM Cost: 5.00GB
+	RAM Cost: 6.40GB
 */
 
 import * as Bus from "./HackOS/Bus.js";
