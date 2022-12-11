@@ -27,11 +27,12 @@ export async function main(ns)
 	ns.print(`${colors["white"] + "White = Has no Money/Ram"}`);
 	ns.print("\n");
 	
-	ns.print(`${colors["red"] + "Base Servers:"}`);
+	
 	var base_servers = await ServerUtil.getBaseServers(ns);
 	var base_servers_with_money = await ServerUtil.getBaseServersWithMoney(ns);
 	var base_servers_with_ram = await ServerUtil.getBaseServersWithRam(ns);
 
+	ns.print(`${colors["red"] + "Base Servers: " + base_servers.length}`);
 	var servers = "";
 	for (let i = 0; i < base_servers.length; i++)
 	{
@@ -58,7 +59,7 @@ export async function main(ns)
 	ns.print("\n");
 	
 	servers = "";
-	ns.print(`${colors["red"] + "Purchased Servers:"}`);
+	ns.print(`${colors["red"] + "Purchased Servers: " + purchased_servers.length}`);
 	var purchased_servers = await ServerUtil.getBoughtServers(ns);
 	for (let i = 0; i < purchased_servers.length; i++)
 	{

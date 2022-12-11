@@ -19,7 +19,8 @@ export const portMap =
     "GPU OUT":  7,
     "NET OUT":  8,
     "RAM OUT":  9,
-    "BANK OUT": 10
+    "BANK OUT": 10,
+    "UI OUT":   11,
 };
 
 export const colors = 
@@ -51,7 +52,7 @@ export async function main(ns)
             await Pull(ns);
         }
 
-        await ns.sleep(100);
+        await ns.sleep(500);
     }
 }
 
@@ -60,7 +61,7 @@ async function Pull(ns)
     let received = false;
 
     //Scan all the OUT ports for packets
-    for (let i = 6; i <= 10; i++)
+    for (let i = 6; i <= 11; i++)
     {
         let port = ns.getPortHandle(i);
         if (!port.empty())
