@@ -4,9 +4,9 @@ export class Packet
 {
     constructor(request, source, destination, data)
     {
-        this.request = request;
-        this.source = source;
-        this.destination = destination;
-        this.data = data;
+        this.Request = request;
+        this.Source = source;
+        this.Destination = destination;
+        this.Data = data;
     }
 }
