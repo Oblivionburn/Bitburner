@@ -49,28 +49,22 @@ export async function main(ns)
         {
             if (packet.Request == "SCAN_DEEP")
             {
-				ns.print("Running deep scan...");
                 await DeepScan(ns, "home");
             }
 			else if (packet.Request == "SCAN_ROOTED")
             {
-				ns.print("Running scan for rooted servers...");
                 await Scan_RootedServers(ns);
             }
 			else if (packet.Request == "SCAN_PURCHASED")
             {
-				ns.print("Running scan for purchased servers...");
                 await Scan_PurchasedServers(ns);
             }
 			else if (packet.Request == "SCAN_AVAILABLE")
 			{
-				ns.print("Running scan for available servers...");
 				await Scan_AvailableServers(ns);
 			}
 			else if (packet.Request == "RETURN_BASE")
 			{
-				ns.print("Collecting base servers...");
-
 				if (base_servers.length == 0)
 				{
 					await DeepScan(ns, "home");
@@ -84,8 +78,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_BASE_WITH_MONEY")
 			{
-				ns.print("Collecting base servers with money...");
-				
 				if (base_servers_with_money.length == 0)
 				{
 					await DeepScan(ns, "home");
@@ -99,8 +91,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_BASE_WITH_RAM")
 			{
-				ns.print("Collecting base servers with ram...");
-
 				if (base_servers_with_ram.length == 0)
 				{
 					await DeepScan(ns, "home");
@@ -114,8 +104,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_ROOTED")
 			{
-				ns.print("Collecting rooted servers...");
-
 				if (rooted_servers.length == 0)
 				{
 					await Scan_RootedServers(ns);
@@ -129,8 +117,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_ROOTED_WITH_MONEY")
 			{
-				ns.print("Collecting rooted servers with money...");
-
 				if (rooted_servers_with_money.length == 0)
 				{
 					await Scan_RootedServers(ns);
@@ -144,8 +130,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_ROOTED_WITH_RAM")
 			{
-				ns.print("Collecting rooted servers with ram...");
-
 				if (rooted_servers_with_ram.length == 0)
 				{
 					await Scan_RootedServers(ns);
@@ -159,8 +143,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_PURCHASED")
 			{
-				ns.print("Collecting purchased servers...");
-
 				if (purchased_servers.length == 0)
 				{
 					await Scan_PurchasedServers(ns);
@@ -174,8 +156,6 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_AVAILABLE")
 			{
-				ns.print("Collecting available servers...");
-
 				if (available_servers.length == 0)
 				{
 					await Scan_AvailableServers(ns);
@@ -329,7 +309,7 @@ async function CheckReceived(ns)
             let packet = Object.assign(Packet.prototype, object);
 
             ns.print(`${colors["white"] + "- Received " + colors["green"] + "'" + packet.Request + "'" + colors["white"] + 
-				" Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
+                " Packet from " + colors["yellow"] + packet.Source + colors["white"] + "."}`);
 
             return packet;
         }

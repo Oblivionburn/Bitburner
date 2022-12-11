@@ -47,7 +47,7 @@ export async function main(ns)
             await Pull(ns);
         }
 
-        await ns.sleep(100);
+        await ns.sleep(1);
     }
 }
 
