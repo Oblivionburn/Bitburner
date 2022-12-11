@@ -5,5 +5,4 @@
 - Manager Total Running RAM: 6.45GB
   - Manager is a centralized control system that handles script distribution/execution across all servers
 - Worm Total Running RAM: 4GB
-  - Worm is a script that copies/jumps itself to every connected server it can find, and it copies a Hack script to every server along the way.
-    - Requires RAM to run, so servers without RAM will deter it.
+  - Worm is a script that copies/jumps itself to every connected server it can find, and it copies a Hack script to every server along the way. Note: script requires RAM to run, so servers without RAM will block it.
