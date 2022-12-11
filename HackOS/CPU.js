@@ -1,11 +1,17 @@
 /*
-    Processes instructions sent from other hardware
-	RAM Cost: 1.60GB
+    CPU processes instructions sent from other hardware
+	RAM Cost: 7.50GB
 */
 
 import {portMap,colors} from "./HackOS/Bus.js";
 import {Packet} from "./HackOS/Packet.js";
 import {Data} from "./HackOS/Data.js";
+
+let available_servers = [];
+let requestedAvailableServers = false;
+
+let rooted_servers_with_money = [];
+let requestedMoneyServers = false;
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -13,19 +19,28 @@ export async function main(ns)
     ns.disableLog("ALL");
     ns.tail(ns.getScriptName(), "home");
 
-    let newPacket = new Packet("SCAN_DEEP", "CPU", "NET", null);
-    await Send(ns, newPacket);
-    newPacket = new Packet("RETURN_BASE", "CPU", "NET", null);
-    await Send(ns, newPacket);
-    newPacket = new Packet("RETURN_BASE_WITH_MONEY", "CPU", "NET", null);
-    await Send(ns, newPacket);
-    newPacket = new Packet("RETURN_BASE_WITH_RAM", "CPU", "NET", null);
-    await Send(ns, newPacket);
+    let weaken_percent = 50;
+	let grow_percent = 40;
+
+    await Init(ns);
     
     while (true)
     {
+        await Send(ns, new Packet("ROOT_SERVERS", "CPU", "NET", null));
+        await Send(ns, new Packet("BUY_SERVER", "CPU", "BANK", null));
+        await Send(ns, new Packet("UPGRADE_SERVERS", "CPU", "BANK", null));
+
+        if (!requestedAvailableServers)
+		{
+			requestedAvailableServers = await Send(ns, new Packet("RETURN_AVAILABLE", "CPU", "NET", null));
+		}
+        if (!requestedMoneyServers)
+        {
+            requestedMoneyServers = await Send(ns, new Packet("RETURN_ROOTED_WITH_MONEY", "CPU", "NET", null));
+        }
+
         ns.clearLog();
-        ns.print("Waiting for instructions...");
+        await ManageHacking(ns);
 
         let packet = await CheckReceived(ns);
         if (packet != null)
@@ -34,12 +49,135 @@ export async function main(ns)
                 packet.Request == "RETURN_BASE_WITH_MONEY" ||
                 packet.Request == "RETURN_BASE_WITH_RAM")
             {
-                let newPacket = new Packet("STORE", "CPU", "RAM", packet.Data);
-                await Send(ns, newPacket);
+                await Send(ns, new Packet("STORE", "CPU", "RAM", packet.Data));
+            }
+            else if (packet.Request == "RETURN_AVAILABLE")
+            {
+                available_servers = packet.Data.Data;
+				requestedAvailableServers = false;
+            }
+            else if (packet.Request == "RETURN_ROOTED_WITH_MONEY")
+            {
+                rooted_servers_with_money = packet.Data.Data;
+				requestedMoneyServers = false;
             }
         }
 
-		await ns.sleep(100);
+		await ns.sleep(1000);
+    }
+}
+
+async function Init(ns)
+{
+    await Send(ns, new Packet("SCAN_DEEP", "CPU", "NET", null));
+    await Send(ns, new Packet("SCAN_PURCHASED", "CPU", "NET", null));
+    await Send(ns, new Packet("RETURN_BASE", "CPU", "NET", null));
+    await Send(ns, new Packet("RETURN_BASE_WITH_MONEY", "CPU", "NET", null));
+    await Send(ns, new Packet("RETURN_BASE_WITH_RAM", "CPU", "NET", null));
+}
+
+async function ManageHacking(ns)
+{
+    let availableCount = available_servers.length;
+    let weaken_index = Math.floor((availableCount * weaken_percent) / 100);
+    let grow_index = Math.floor(weaken_index + (availableCount* grow_percent) / 100);
+
+    ns.print(`${colors["white"] + "Rooted Servers With Money: " + colors["green"] + rooted_servers_with_money.length}`);
+    ns.print(`${colors["white"] + "Available Servers: " + colors["green"] + available_servers.length}`);
+    ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (" + weaken_percent + "%)"}`);
+    ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (" + grow_percent + "%)"}`);
+    ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + (availableCount - 1) + " (" + hack_percent + "%)"}`);
+
+    for (let i = 0; i < availableCount; i++)
+    {
+        let server = available_servers[i];
+        
+        if (i <= weaken_index)
+        {
+            await RemoveScript(ns, "Grow.js", server);
+            await RemoveScript(ns, "Hack.js", server);
+
+            if (ns.fileExists("Weaken.js", server))
+            {
+                await RunScript(ns, "Weaken.js", server);
+            }
+            else
+            {
+                ns.scp("/HackOS/Weaken.js", server, "home");
+            }
+        }
+        else if (i <= grow_index)
+        {
+            await RemoveScript(ns, "Weaken.js", server);
+            await RemoveScript(ns, "Hack.js", server);
+
+            if (ns.fileExists("Grow.js", server))
+            {
+                await RunScript(ns, "Grow.js", server);
+            }
+            else
+            {
+                ns.scp("/HackOS/Grow.js", server, "home");
+            }
+        }
+        else
+        {
+            await RemoveScript(ns, "Weaken.js", server);
+            await RemoveScript(ns, "Grow.js", server);
+
+            if (ns.fileExists("Hack.js", server))
+            {
+                await RunScript(ns, "Hack.js", server);
+            }
+            else
+            {
+                ns.scp("/HackOS/Hack.js", server, "home");
+            }
+        }
+    }
+}
+
+async function RemoveScript(ns, script, server)
+{
+	if (ns.fileExists(script, server))
+	{
+		ns.scriptKill(script, server);
+		ns.rm(script, server);
+	}
+}
+
+async function RunScript(ns, script, server)
+{
+	let ramCost = ns.getScriptRam(script, server);
+	let maxRam = ns.getServerMaxRam(server);
+	let serverCount = rooted_servers_with_money.length;
+
+    if (serverCount > 0)
+    {
+        let allServers = ramCost * serverCount;
+        let threadsForAllServers = Math.floor(maxRam / allServers);
+        let allServersRamCost = threadsForAllServers * ramCost;
+
+        for (let i = 0; i < serverCount; i++)
+        {
+            let server_with_money = rooted_servers_with_money[i];
+            let usedRam = ns.getServerUsedRam(server);
+            let availableRam = maxRam - usedRam;
+
+            if (availableRam >= allServersRamCost &&
+                threadsForAllServers > 0)
+            {
+                ns.exec(script, server, threadsForAllServers, server_with_money);
+            }
+            else if (availableRam >= ramCost)
+            {
+                ns.exec(script, server, 1, server_with_money);
+            }
+            else
+            {
+                break;
+            }
+        }
     }
 }
 

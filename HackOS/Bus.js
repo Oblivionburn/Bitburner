@@ -9,15 +9,17 @@ let queue = [];
 
 export const portMap = 
 {
-    "Void":    0,
-    "CPU IN":  1,
-    "GPU IN":  2,
-    "NET IN":  3,
-    "RAM IN":  4,
-    "CPU OUT": 5,
-    "GPU OUT": 6,
-    "NET OUT": 7,
-    "RAM OUT": 8
+    "Void":     0,
+    "CPU IN":   1,
+    "GPU IN":   2,
+    "NET IN":   3,
+    "RAM IN":   4,
+    "BANK IN":  5,
+    "CPU OUT":  6,
+    "GPU OUT":  7,
+    "NET OUT":  8,
+    "RAM OUT":  9,
+    "BANK OUT": 10
 };
 
 export const colors = 
@@ -33,7 +35,7 @@ export const colors =
 export async function main(ns)
 {
     ns.disableLog("ALL");
-    ns.tail(ns.getScriptName(), "home");
+    //ns.tail(ns.getScriptName(), "home");
     ns.clearLog();
 
     while (true)
@@ -56,7 +58,7 @@ async function Pull(ns)
     let received = false;
 
     //Scan all the OUT ports for packets
-    for (let i = 5; i <= 8; i++)
+    for (let i = 6; i <= 10; i++)
     {
         let port = ns.getPortHandle(i);
         if (!port.empty())

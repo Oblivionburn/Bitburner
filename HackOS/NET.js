@@ -1,8 +1,8 @@
 /*
-    This hardware is able to scan the network,
-		maintain a map of the network,
-		and return requests for mapped data.
-	RAM Cost: 2.05GB
+    NET handles scanning the network,
+		maintaining a map of the network,
+		and returning requests for network data.
+	RAM Cost: 2.30GB
 */
 
 import {portMap,colors} from "./HackOS/Bus.js";
@@ -27,27 +27,17 @@ export async function main(ns)
     while (true)
     {
         ns.clearLog();
-
-		let purchasedServerNumLimit = ns.getPurchasedServerLimit();
-		
-		ns.print(`${colors["white"] + "Base Servers: " + colors["green"] + base_servers.length}`);
-		ns.print("\n");
-		ns.print(`${colors["white"] + "Base Servers with money: " + colors["green"] + base_servers_with_money.length}`);
-		ns.print(`${colors["white"] + "Rooted Base Servers with money: " + colors["green"] + rooted_servers_with_money.length}`);
-		ns.print("\n");
-		ns.print(`${colors["white"] + "Base Servers with ram: " + colors["green"] + base_servers_with_ram.length}`);
-		ns.print(`${colors["white"] + "Rooted Base Servers with ram: " + colors["green"] + rooted_servers_with_ram.length}`);
-		ns.print("\n");
-		ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + purchasedServerNumLimit}`);
-		ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
-		ns.print("\n");
-		ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
-		ns.print("\n");
+		await Log(ns);
 
 		let packet = await CheckReceived(ns);
         if (packet != null)
         {
-            if (packet.Request == "SCAN_DEEP")
+			if (packet.Request == "ROOT_SERVERS")
+			{
+				await RootServers(ns);
+				await Scan_RootedServers(ns);
+			}
+            else if (packet.Request == "SCAN_DEEP")
             {
                 await DeepScan(ns, "home");
             }
@@ -143,10 +133,7 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_PURCHASED")
 			{
-				if (purchased_servers.length == 0)
-				{
-					await Scan_PurchasedServers(ns);
-				}
+				await Scan_PurchasedServers(ns);
 
 				packet.Destination = packet.Source;
 				packet.Source = "NET";
@@ -156,10 +143,7 @@ export async function main(ns)
 			}
 			else if (packet.Request == "RETURN_AVAILABLE")
 			{
-				if (available_servers.length == 0)
-				{
-					await Scan_AvailableServers(ns);
-				}
+				await Scan_AvailableServers(ns);
 
 				packet.Destination = packet.Source;
 				packet.Source = "NET";
@@ -171,6 +155,135 @@ export async function main(ns)
 
 		await ns.sleep(100);
     }
+}
+
+async function Log(ns)
+{
+	let purchasedServerNumLimit = ns.getPurchasedServerLimit();
+	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
+	let maxPurchasedServerRam = 0;
+	let nextCost = Number.MAX_SAFE_INTEGER;
+
+	for (let i = 0; i < purchased_servers.length; i++)
+	{
+		let server = purchased_servers[i];
+		
+		let maxRam = ns.getServerMaxRam(server);
+		if (maxRam < minPurchasedServerRam)
+		{
+			minPurchasedServerRam = maxRam;
+		}
+		if (maxRam > maxPurchasedServerRam)
+		{
+			maxPurchasedServerRam = maxRam;
+		}
+
+		let serverCost = ns.getPurchasedServerCost(maxRam * 2);
+		if (serverCost < nextCost)
+		{
+			nextCost = serverCost;
+		}
+	}
+
+	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
+	{
+		minPurchasedServerRam = 0;
+	}
+	if (nextCost == Number.MAX_SAFE_INTEGER)
+	{
+		nextCost = ns.getPurchasedServerCost(2);
+	}
+	
+	ns.print(`${colors["white"] + "Base Servers: " + colors["green"] + base_servers.length}`);
+	ns.print("\n");
+	ns.print(`${colors["white"] + "Base Servers with money: " + colors["green"] + base_servers_with_money.length}`);
+	ns.print(`${colors["white"] + "Rooted Base Servers with money: " + colors["green"] + rooted_servers_with_money.length}`);
+	ns.print("\n");
+	ns.print(`${colors["white"] + "Base Servers with ram: " + colors["green"] + base_servers_with_ram.length}`);
+	ns.print(`${colors["white"] + "Rooted Base Servers with ram: " + colors["green"] + rooted_servers_with_ram.length}`);
+	ns.print("\n");
+	ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + purchasedServerNumLimit}`);
+	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
+	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam}`);
+	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam}`);
+	ns.print(`${colors["white"] + "Next Purchased Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
+	ns.print("\n");
+	ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
+	ns.print("\n");
+}
+
+async function RootServers(ns)
+{
+	if (rooted_servers.length < base_servers.length)
+	{
+		for (let i = 0; i < base_servers.length; i++)
+		{
+			let server = base_servers[i];
+			if (!rooted_servers.includes(server))
+			{
+				//Which port do we need to open?
+				var portsRequired = ns.getServerNumPortsRequired(server);
+
+				var canBruteSSH = ns.fileExists("BruteSSH.exe", "home");
+				var canFTPCrack = ns.fileExists("FTPCrack.exe", "home");
+				var canRelaySMTP = ns.fileExists("relaySMTP.exe", "home");
+				var canHTTPWorm = ns.fileExists("HTTPWorm.exe", "home");
+				var canSQLInject = ns.fileExists("SQLInject.exe", "home");
+
+				//Do we already have root access for this server?
+				var hasRoot = ns.hasRootAccess(server);
+				if (!hasRoot)
+				{
+					var portsOpened = 0;
+					if (portsRequired >= 5 &&
+						canSQLInject)
+					{
+						portsOpened++;
+						ns.sqlinject(server);
+					}
+					if (portsRequired >= 4 &&
+						canHTTPWorm)
+					{
+						portsOpened++;
+						ns.httpworm(server);
+					}
+					if (portsRequired >= 3 &&
+						canRelaySMTP)
+					{
+						portsOpened++;
+						ns.relaysmtp(server);
+					}
+					if (portsRequired >= 2 &&
+						canFTPCrack)
+					{
+						portsOpened++;
+						ns.ftpcrack(server);
+					}
+					if (portsRequired >= 1 &&
+						canBruteSSH)
+					{
+						portsOpened++;
+						ns.brutessh(server);
+					}
+
+					if (portsOpened >= portsRequired)
+					{
+						ns.nuke(server);
+
+						//Send alert to Terminal
+						ns.tprint("Gained root access to '" + server + "' server!");
+					}
+					
+					hasRoot = ns.hasRootAccess(server);
+				}
+
+				if (hasRoot)
+				{
+					rooted_servers.push(server);
+				}
+			}
+		}
+	}
 }
 
 async function DeepScan(ns, server)
@@ -209,34 +322,23 @@ async function DeepScan(ns, server)
 
 async function Scan_RootedServers(ns)
 {
-	if (base_servers.length == 0)
+	let count = rooted_servers.length;
+	if (count > 0)
 	{
-		await DeepScan(ns, "home");
-	}
-
-	let baseCount = base_servers.length;
-	if (baseCount > 0)
-	{
-		for (let i = 0; i < baseCount; i++)
+		for (let i = 0; i < count; i++)
 		{
-			let server = base_servers[i];
+			let server = rooted_servers[i];
 
-			if (ns.hasRootAccess(server) &&
-				!rooted_servers.includes(server))
+			if (base_servers_with_money.includes(server) &&
+				!rooted_servers_with_money.includes(server))
 			{
-				rooted_servers.push(server);
+				rooted_servers_with_money.push(server);
+			}
 
-				if (base_servers_with_money.includes(server) &&
-					!rooted_servers_with_money.includes(server))
-				{
-					rooted_servers_with_money.push(server);
-				}
-
-				if (base_servers_with_ram.includes(server) &&
-					!rooted_servers_with_ram.includes(server))
-				{
-					rooted_servers_with_ram.push(server);
-				}
+			if (base_servers_with_ram.includes(server) &&
+				!rooted_servers_with_ram.includes(server))
+			{
+				rooted_servers_with_ram.push(server);
 			}
 		}
 	}

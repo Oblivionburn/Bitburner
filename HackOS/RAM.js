@@ -18,7 +18,7 @@ export async function main(ns)
     while (true)
     {
         ns.clearLog();
-        ns.print(`${colors["yellow"] + "Packets in memory:"}`);
+        ns.print(`${colors["yellow"] + "Data in memory:"}`);
         if (memory.length > 0)
         {
             for (let i = 0; i < memory.length; i++)
