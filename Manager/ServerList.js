@@ -58,9 +58,10 @@ export async function main(ns)
 	ns.print(servers);
 	ns.print("\n");
 	
-	servers = "";
-	ns.print(`${colors["red"] + "Purchased Servers: " + purchased_servers.length}`);
 	var purchased_servers = await ServerUtil.getBoughtServers(ns);
+	ns.print(`${colors["red"] + "Purchased Servers: " + purchased_servers.length}`);
+	
+	servers = "";
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
