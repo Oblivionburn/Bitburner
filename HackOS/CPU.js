@@ -52,6 +52,7 @@ export async function main(ns)
                 if (packet.Data.Name == "AVAILABLE_SERVERS")
                 {
                     available_servers = packet.Data.List;
+                    available_servers.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
                     requestedAvailableServers = false;
                 }
                 else if (packet.Data.Name == "ROOTED_SERVERS_WITH_MONEY")
