@@ -30,6 +30,8 @@ export async function main(ns)
 
     while (true)
     {
+		await Scan_PurchasedServers(ns);
+
 		await RootServers(ns);
 		await Scan_RootedServers(ns);
 
@@ -47,11 +49,6 @@ export async function main(ns)
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS_WITH_MONEY", base_servers_with_money)), outPort);
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS_WITH_RAM", base_servers_with_ram)), outPort);
             }
-			else if (packet.Request == "SCAN_PURCHASED")
-            {
-                await Scan_PurchasedServers(ns);
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("PURCHASED_SERVERS", purchased_servers)), outPort);
-            }
 			else if (packet.Request == "SCAN_AVAILABLE")
 			{
 				await Scan_AvailableServers(ns);
@@ -68,30 +65,8 @@ export async function main(ns)
 
 async function Log(ns)
 {
-	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
-	let maxPurchasedServerRam = 0;
-
-	for (let i = 0; i < purchased_servers.length; i++)
-	{
-		let server = purchased_servers[i];
-		
-		let maxRam = ns.getServerMaxRam(server);
-		if (maxRam < minPurchasedServerRam)
-		{
-			minPurchasedServerRam = maxRam;
-		}
-		if (maxRam > maxPurchasedServerRam)
-		{
-			maxPurchasedServerRam = maxRam;
-		}
-	}
-
-	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
-	{
-		minPurchasedServerRam = 0;
-	}
-	
 	ns.print(`${colors["white"] + "Base Servers: " + colors["green"] + base_servers.length}`);
+	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Base Servers with money: " + colors["green"] + base_servers_with_money.length}`);
 	ns.print(`${colors["white"] + "Rooted Base Servers with money: " + colors["green"] + rooted_servers_with_money.length}`);
@@ -99,11 +74,7 @@ async function Log(ns)
 	ns.print(`${colors["white"] + "Base Servers with ram: " + colors["green"] + base_servers_with_ram.length}`);
 	ns.print(`${colors["white"] + "Rooted Base Servers with ram: " + colors["green"] + rooted_servers_with_ram.length}`);
 	ns.print("\n");
-	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
-	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
-	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam + " GB"}`);
-	ns.print("\n");
-	ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
+	ns.print(`${colors["white"] + "Total Servers with ram: " + colors["green"] + available_servers.length}`);
 	ns.print("\n");
 }
 

@@ -1,6 +1,6 @@
 /*
     BANK handles transactions involving money
-	RAM Cost: 11.50GB
+	RAM Cost: 11.70GB
 */
 
 import * as Bus from "./HackOS/Bus.js";
@@ -12,8 +12,6 @@ let inPort = "BANK IN";
 let outPort = "BANK OUT";
 
 let purchased_servers = [];
-let requestedServers = false;
-var serverNumLimit = 0;
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -21,79 +19,72 @@ export async function main(ns)
 	ns.disableLog("ALL");
 	ns.tail(ns.getScriptName(), "home");
 
-	serverNumLimit = ns.getPurchasedServerLimit();
-
-	await Init(ns);
-
     while (true)
     {
-		if (!requestedServers)
-		{
-			requestedServers = await Bus.Send(ns, new Packet("RETURN", "BANK", "RAM", new Data("PURCHASED_SERVERS", null)), outPort);
-		}
-
         let packet = await Bus.CheckReceived(ns, inPort);
         if (packet != null)
         {
-            if (packet.Request == "RETURN")
-            {
-				if (packet.Data.Name == "PURCHASED_SERVERS")
-				{
-					purchased_servers = packet.Data.List;
-					requestedServers = false;
-				}
-            }
-			else if (packet.Request == "RETURN_FAILED")
-            {
-                if (packet.Data.Name == "PURCHASED_SERVERS")
-                {
-                    await Bus.Send(ns, new Packet("SCAN_PURCHASED", "BANK", "NET", null), outPort);
-                    requestedServers = false;
-                }
-            }
+            //Do stuff
         }
 
-		await BuyServer(ns);
-        
 		ns.clearLog();
 
-        await Log(ns);
-
+		await BuyServer(ns);
 		await BuyHacknet(ns);
+		
 		await ns.sleep(100);
     }
 }
 
-async function Init(ns)
+async function BuyServer(ns)
 {
-    await Bus.Send(ns, new Packet("SCAN_PURCHASED", "BANK", "NET", null), outPort);
-}
+	await Scan_PurchasedServers(ns);
 
-async function Log(ns)
-{
+	if (purchased_servers.length > 0)
+	{
+		await Bus.Send(ns, new Packet("STORE", "BANK", "RAM", new Data("PURCHASED_SERVERS", purchased_servers)), outPort);
+	}
+
 	let money = ns.getPlayer().money;
+	let serverRamLimit = ns.getPurchasedServerMaxRam();
+	let serverCost = ns.getPurchasedServerCost(2);
+	let serverNumLimit = ns.getPurchasedServerLimit();
+	let upgrade = false;
+	let nextCost = Number.MAX_SAFE_INTEGER;
 	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 	let maxPurchasedServerRam = 0;
-	let nextCost = Number.MAX_SAFE_INTEGER;
 
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
-		let server = purchased_servers[i];
-		
-		let maxRam = ns.getServerMaxRam(server);
-		if (maxRam < minPurchasedServerRam)
+		let money = ns.getPlayer().money;
+		let server_name = purchased_servers[i];
+		let serverRam = ns.getServerMaxRam(server_name);
+		let nextRam = serverRam * 2;
+		let upgradeCost = ns.getPurchasedServerCost(nextRam);
+
+		if (upgradeCost < nextCost)
 		{
-			minPurchasedServerRam = maxRam;
-		}
-		if (maxRam > maxPurchasedServerRam)
-		{
-			maxPurchasedServerRam = maxRam;
+			nextCost = upgradeCost;
 		}
 
-		let serverCost = ns.getPurchasedServerCost(maxRam * 2);
-		if (serverCost < nextCost)
+		if (serverRam < minPurchasedServerRam)
 		{
-			nextCost = serverCost;
+			minPurchasedServerRam = serverRam;
+		}
+		if (serverRam > maxPurchasedServerRam)
+		{
+			maxPurchasedServerRam = serverRam;
+		}
+
+		if (serverRam < serverRamLimit &&
+			nextRam < serverRamLimit &&
+			money >= upgradeCost)
+		{
+			upgrade = true;
+			ns.killall(server_name);
+			ns.deleteServer(server_name);
+			ns.purchaseServer(server_name, nextRam);
+			await Bus.Send(ns, new Packet("SCAN_PURCHASED", "BANK", "NET", null), outPort);
 		}
 	}
 
@@ -101,52 +92,27 @@ async function Log(ns)
 	{
 		minPurchasedServerRam = 0;
 	}
+
+	if (!upgrade &&
+		money >= serverCost &&
+		purchased_servers.length < serverNumLimit)
+	{
+		ns.purchaseServer("PS-" + purchased_servers.length, 2);
+		await Bus.Send(ns, new Packet("SCAN_PURCHASED", "BANK", "NET", null), outPort);
+	}
+	
 	if (nextCost == Number.MAX_SAFE_INTEGER)
 	{
-		nextCost = ns.getPurchasedServerCost(2);
+		nextCost = serverCost;
 	}
 
 	ns.print(`${colors["white"] + "Current Money: " + colors["green"] + "$" + money.toLocaleString()}`);
 	ns.print("\n");
     ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + serverNumLimit}`);
 	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
+	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
+	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam + " GB"}`);
 	ns.print(`${colors["white"] + "Buy/Upgrade Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
-}
-
-async function BuyServer(ns)
-{
-	let money = ns.getPlayer().money;
-	
-	let serverCost = ns.getPurchasedServerCost(2);
-	if (money >= serverCost &&
-		purchased_servers.length < serverNumLimit)
-	{
-		ns.purchaseServer("PS-" + purchased_servers.length, 2);
-	}
-	else
-	{
-		let serverRamLimit = ns.getPurchasedServerMaxRam();
-	
-		for (let i = 0; i < purchased_servers.length; i++)
-		{
-			let money = ns.getPlayer().money;
-			let server_name = purchased_servers[i];
-			let serverRam = ns.getServerMaxRam(server_name);
-			let nextRam = serverRam * 2;
-
-			if (serverRam < serverRamLimit &&
-				nextRam < serverRamLimit)
-			{
-				let upgradeCost = ns.getPurchasedServerCost(nextRam);
-				if (money >= upgradeCost)
-				{
-					ns.killall(server_name);
-					ns.deleteServer(server_name);
-					ns.purchaseServer(server_name, nextRam);
-				}
-			}
-		}
-	}
 }
 
 async function BuyHacknet(ns)
@@ -231,12 +197,12 @@ async function BuyHacknet(ns)
 			ns.hacknet.upgradeLevel(i, 1);
 		}
 		else if (node.ram < 64 &&
-					money >= ramCost)
+				money >= ramCost)
 		{
 			ns.hacknet.upgradeRam(i, 1);
 		}
 		else if (node.cores < 16 &&
-					money >= coreCost)
+				money >= coreCost)
 		{
 			ns.hacknet.upgradeCore(i, 1);
 		}
@@ -270,4 +236,23 @@ async function BuyHacknet(ns)
 	ns.print(`${colors["yellow"] + "Node Cores"}`);
 	ns.print(`${colors["white"] + "Lowest: " + minCores + ", Highest: " + maxCores + ", Max: 16"}`);
 	ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextCoreCost.toLocaleString()}`);
+}
+
+async function Scan_PurchasedServers(ns)
+{
+	let scan_results = ns.scan("home");
+	let scanCount = scan_results.length;
+	if (scanCount > 0)
+	{
+		for (let i = 0; i < scanCount; i++)
+		{
+			let server = scan_results[i];
+
+			if (server.includes("PS-") &&
+				!purchased_servers.includes(server))
+			{
+				purchased_servers.push(server);
+			}
+		}
+	}
 }
