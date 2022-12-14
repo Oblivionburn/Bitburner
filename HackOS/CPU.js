@@ -17,8 +17,8 @@ let requestedMoneyServers = false;
 let inPort = "CPU IN";
 let outPort = "CPU OUT";
 
-let weaken_percent = 1;
-let grow_percent = 80;
+let weaken_percent = 5;
+let grow_percent = 75;
 let hack_percent = 100 - weaken_percent - grow_percent;
 
 /** @param {NS} ns */
@@ -31,10 +31,6 @@ export async function main(ns)
     
     while (true)
     {
-        await Bus.Send(ns, new Packet("ROOT_SERVERS", "CPU", "NET", null), outPort);
-        await Bus.Send(ns, new Packet("BUY_SERVER", "CPU", "BANK", null), outPort);
-        await Bus.Send(ns, new Packet("UPGRADE_SERVERS", "CPU", "BANK", null), outPort);
-        
         if (!requestedAvailableServers)
 		{
 			requestedAvailableServers = await Bus.Send(ns, new Packet("RETURN", "CPU", "RAM", new Data("AVAILABLE_SERVERS", null)), outPort);

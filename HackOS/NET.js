@@ -2,7 +2,7 @@
     NET handles scanning the network,
 		maintaining a map of the network,
 		and returning requests for network data.
-	RAM Cost: 2.80GB
+	RAM Cost: 2.50GB
 */
 
 import * as Bus from "./HackOS/Bus.js";
@@ -30,44 +30,31 @@ export async function main(ns)
 
     while (true)
     {
+		await RootServers(ns);
+		await Scan_RootedServers(ns);
+
+		await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS", rooted_servers)), outPort);
+		await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_MONEY", rooted_servers_with_money)), outPort);
+		await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_RAM", rooted_servers_with_ram)), outPort);
+		
 		let packet = await Bus.CheckReceived(ns, inPort);
         if (packet != null)
         {
-			if (packet.Request == "ROOT_SERVERS")
-			{
-				await RootServers(ns);
-				await Scan_RootedServers(ns);
-
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS", rooted_servers)), outPort);
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_MONEY", rooted_servers_with_money)), outPort);
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_RAM", rooted_servers_with_ram)), outPort);
-			}
-            else if (packet.Request == "SCAN_DEEP")
+			if (packet.Request == "SCAN_DEEP")
             {
                 await DeepScan(ns, "home");
-
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS", base_servers)), outPort);
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS_WITH_MONEY", base_servers_with_money)), outPort);
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("BASE_SERVERS_WITH_RAM", base_servers_with_ram)), outPort);
             }
-			else if (packet.Request == "SCAN_ROOTED")
-            {
-                await Scan_RootedServers(ns);
-
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS", rooted_servers)), outPort);
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_MONEY", rooted_servers_with_money)), outPort);
-				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("ROOTED_SERVERS_WITH_RAM", rooted_servers_with_ram)), outPort);
-            }
 			else if (packet.Request == "SCAN_PURCHASED")
             {
                 await Scan_PurchasedServers(ns);
-
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("PURCHASED_SERVERS", purchased_servers)), outPort);
             }
 			else if (packet.Request == "SCAN_AVAILABLE")
 			{
 				await Scan_AvailableServers(ns);
-
 				await Bus.Send(ns, new Packet("STORE", "NET", "RAM", new Data("AVAILABLE_SERVERS", available_servers)), outPort);
 			}
         }
@@ -75,16 +62,14 @@ export async function main(ns)
 		ns.clearLog();
 		await Log(ns);
 		
-		await ns.sleep(100);
+		await ns.sleep(1000);
     }
 }
 
 async function Log(ns)
 {
-	let purchasedServerNumLimit = ns.getPurchasedServerLimit();
 	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 	let maxPurchasedServerRam = 0;
-	let nextCost = Number.MAX_SAFE_INTEGER;
 
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
@@ -99,21 +84,11 @@ async function Log(ns)
 		{
 			maxPurchasedServerRam = maxRam;
 		}
-
-		let serverCost = ns.getPurchasedServerCost(maxRam * 2);
-		if (serverCost < nextCost)
-		{
-			nextCost = serverCost;
-		}
 	}
 
 	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
 	{
 		minPurchasedServerRam = 0;
-	}
-	if (nextCost == Number.MAX_SAFE_INTEGER)
-	{
-		nextCost = ns.getPurchasedServerCost(2);
 	}
 	
 	ns.print(`${colors["white"] + "Base Servers: " + colors["green"] + base_servers.length}`);
@@ -124,11 +99,9 @@ async function Log(ns)
 	ns.print(`${colors["white"] + "Base Servers with ram: " + colors["green"] + base_servers_with_ram.length}`);
 	ns.print(`${colors["white"] + "Rooted Base Servers with ram: " + colors["green"] + rooted_servers_with_ram.length}`);
 	ns.print("\n");
-	ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + purchasedServerNumLimit}`);
 	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
 	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
 	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam + " GB"}`);
-	ns.print(`${colors["white"] + "Next Buy/Upgrade Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
 	ns.print("\n");
