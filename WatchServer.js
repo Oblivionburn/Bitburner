@@ -10,7 +10,7 @@ export async function main(ns)
 
 	ns.disableLog("ALL");
 	ns.tail(ns.getScriptName(), "home", server);
-
+	
 	const colors = 
     {
 		red: "\u001b[31;1m",
@@ -47,6 +47,6 @@ export async function main(ns)
 		ns.print("\n");
 		ns.print(`${colors["white"] + "Required Hacking Level: " + colors["green"] + requiredHack}`);
 		ns.print(`${colors["white"] + "Current Hacking Level: " + colors["green"] + hackLevel}`);
-		await ns.sleep(1);
+		await ns.sleep(1000);
 	}
 }

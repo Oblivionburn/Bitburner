@@ -19,9 +19,11 @@ var serverNumLimit = 0;
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail(ns.getScriptName(), "home");
+	//ns.tail(ns.getScriptName(), "home");
 
 	serverNumLimit = ns.getPurchasedServerLimit();
+
+	await Init(ns);
 
     while (true)
     {
@@ -62,8 +64,13 @@ export async function main(ns)
 		ns.clearLog();
         await Log(ns);
 
-		await ns.sleep(1);
+		await ns.sleep(100);
     }
+}
+
+async function Init(ns)
+{
+    await Bus.Send(ns, new Packet("SCAN_PURCHASED", "BANK", "NET", null), outPort);
 }
 
 async function Log(ns)

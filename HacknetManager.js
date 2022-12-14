@@ -27,12 +27,6 @@ export async function main(ns)
 		var owned = ns.hacknet.numNodes();
 		var nextNodeCost = ns.hacknet.getPurchaseNodeCost();
 
-		ns.print(`${colors["white"] + "Current Money: " + colors["green"] + "$" + money.toLocaleString()}`);
-		ns.print("\n");
-		ns.print(`${colors["white"] + "Nodes Owned: " + owned}`);
-		ns.print(`${colors["white"] + "Next Node Cost: " + colors["green"] + "$" + nextNodeCost.toLocaleString()}`);
-		ns.print("\n");
-
 		if (owned < nodesMax &&
 			money >= nextNodeCost)
 		{
@@ -119,17 +113,42 @@ export async function main(ns)
 			}
 		}
 
-		ns.print(`${colors["yellow"] + "Node Levels"}`);
-		ns.print(`${colors["white"] + "Lowest: " + minLevel + ", Highest: " + maxLevel + ", Max: 200"}`);
-		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextLevelCost.toLocaleString()}`);
-		ns.print("\n");
-		ns.print(`${colors["yellow"] + "Node Ram"}`);
-		ns.print(`${colors["white"] + "Lowest: " + minRam + ", Highest: " + maxRam + ", Max: 64"}`);
-		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextRamCost.toLocaleString()}`);
-		ns.print("\n");
-		ns.print(`${colors["yellow"] + "Node Cores"}`);
-		ns.print(`${colors["white"] + "Lowest: " + minCores + ", Highest: " + maxCores + ", Max: 16"}`);
-		ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextCoreCost.toLocaleString()}`);
-		await ns.sleep(1000);
+		if (nextLevelCost == Number.MAX_SAFE_INTEGER)
+		{
+			nextLevelCost = 0;
+		}
+		if (nextRamCost == Number.MAX_SAFE_INTEGER)
+		{
+			nextRamCost = 0;
+		}
+		if (nextCoreCost == Number.MAX_SAFE_INTEGER)
+		{
+			nextCoreCost = 0;
+		}
+
+		await Log(ns, colors, money, owned, nextNodeCost, minLevel, maxLevel, nextLevelCost, minRam, maxRam, nextRamCost,
+			minCores, maxCores, nextCoreCost);
+		await ns.sleep(1);
 	}
+}
+
+async function Log(ns, colors, money, owned, nextNodeCost, minLevel, maxLevel, nextLevelCost, minRam, maxRam, nextRamCost, 
+	minCores, maxCores, nextCoreCost)
+{
+	ns.print(`${colors["white"] + "Current Money: " + colors["green"] + "$" + money.toLocaleString()}`);
+	ns.print("\n");
+	ns.print(`${colors["white"] + "Nodes Owned: " + owned}`);
+	ns.print(`${colors["white"] + "Next Node Cost: " + colors["green"] + "$" + nextNodeCost.toLocaleString()}`);
+	ns.print("\n");
+	ns.print(`${colors["yellow"] + "Node Levels"}`);
+	ns.print(`${colors["white"] + "Lowest: " + minLevel + ", Highest: " + maxLevel + ", Max: 200"}`);
+	ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextLevelCost.toLocaleString()}`);
+	ns.print("\n");
+	ns.print(`${colors["yellow"] + "Node Ram"}`);
+	ns.print(`${colors["white"] + "Lowest: " + minRam + ", Highest: " + maxRam + ", Max: 64"}`);
+	ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextRamCost.toLocaleString()}`);
+	ns.print("\n");
+	ns.print(`${colors["yellow"] + "Node Cores"}`);
+	ns.print(`${colors["white"] + "Lowest: " + minCores + ", Highest: " + maxCores + ", Max: 16"}`);
+	ns.print(`${colors["white"] + "Next Cost: " + colors["green"] + "$" + nextCoreCost.toLocaleString()}`);
 }

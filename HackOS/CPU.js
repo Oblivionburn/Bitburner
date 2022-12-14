@@ -17,8 +17,8 @@ let requestedMoneyServers = false;
 let inPort = "CPU IN";
 let outPort = "CPU OUT";
 
-let weaken_percent = 50;
-let grow_percent = 40;
+let weaken_percent = 1;
+let grow_percent = 80;
 let hack_percent = 100 - weaken_percent - grow_percent;
 
 /** @param {NS} ns */
@@ -99,9 +99,10 @@ async function ManageHacking(ns)
 
     ns.print(`${colors["white"] + "Rooted Servers With Money: " + colors["green"] + rooted_servers_with_money.length}`);
     ns.print(`${colors["white"] + "Available Servers: " + colors["green"] + available_servers.length}`);
-    ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (" + weaken_percent + "%)"}`);
-    ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (" + grow_percent + "%)"}`);
-    ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + (availableCount - 1) + " (" + hack_percent + "%)"}`);
+    
+    let total_weaken_ram = 0;
+    let total_grow_ram = 0;
+    let total_hack_ram = 0;
 
     for (let i = 0; i < availableCount; i++)
     {
@@ -109,6 +110,8 @@ async function ManageHacking(ns)
         
         if (i <= weaken_index)
         {
+            total_weaken_ram += ns.getServerMaxRam(server);
+
             await RemoveScript(ns, "/HackOS/Grow.js", server);
             await RemoveScript(ns, "/HackOS/Hack.js", server);
 
@@ -123,6 +126,8 @@ async function ManageHacking(ns)
         }
         else if (i <= grow_index)
         {
+            total_grow_ram += ns.getServerMaxRam(server);
+
             await RemoveScript(ns, "/HackOS/Weaken.js", server);
             await RemoveScript(ns, "/HackOS/Hack.js", server);
 
@@ -137,9 +142,11 @@ async function ManageHacking(ns)
         }
         else
         {
+            total_hack_ram += ns.getServerMaxRam(server);
+
             await RemoveScript(ns, "/HackOS/Weaken.js", server);
             await RemoveScript(ns, "/HackOS/Grow.js", server);
-
+            
             if (ns.fileExists("/HackOS/Hack.js", server))
             {
                 await RunScript(ns, "/HackOS/Hack.js", server);
@@ -150,6 +157,10 @@ async function ManageHacking(ns)
             }
         }
     }
+
+    ns.print(`${colors["white"] + "Weaken Index: " + colors["green"] + "0 - " + weaken_index + " (" + weaken_percent + "%); " + total_weaken_ram + " GB"}`);
+    ns.print(`${colors["white"] + "Grow Index: " + colors["green"] + (weaken_index + 1) + " - " + grow_index + " (" + grow_percent + "%); " + total_grow_ram + " GB"}`);
+    ns.print(`${colors["white"] + "Hack Index: " + colors["green"] + (grow_index + 1) + " - " + (availableCount - 1) + " (" + hack_percent + "%); " + total_hack_ram + " GB"}`);
 }
 
 async function RemoveScript(ns, script, server)

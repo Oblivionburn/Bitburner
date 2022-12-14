@@ -126,8 +126,8 @@ async function Log(ns)
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + purchasedServerNumLimit}`);
 	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
-	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam}`);
-	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam}`);
+	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
+	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam + " GB"}`);
 	ns.print(`${colors["white"] + "Next Buy/Upgrade Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Total Servers Available: " + colors["green"] + available_servers.length}`);
@@ -193,7 +193,7 @@ async function RootServers(ns)
 						ns.nuke(server);
 
 						//Send alert to Terminal
-						ns.tprint("Gained root access to '" + server + "' server!");
+						ns.tprint(`${colors["white"] + "Gained root access to '" + server + "' server!"}`);
 					}
 					
 					hasRoot = ns.hasRootAccess(server);
