@@ -40,8 +40,6 @@ export async function main(ns)
 
 async function Log(ns)
 {
-	ns.print(`${colors["white"] + "Current Money: " + colors["green"] + "$" + money.toLocaleString()}`);
-	ns.print("\n");
     ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + serverNumLimit}`);
 	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchasedNum}`);
 	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
@@ -51,7 +49,7 @@ async function Log(ns)
 
 async function BuyServer(ns)
 {
-	let money = ns.getPlayer().money;
+	money = ns.getPlayer().money;
 
 	if (money >= serverCost &&
 		purchasedNum < serverNumLimit)
@@ -62,15 +60,13 @@ async function BuyServer(ns)
 
 async function UpgradeServers(ns)
 {
-	money = ns.getPlayer().money;
-	
 	nextCost = Number.MAX_SAFE_INTEGER;
 	minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 	maxPurchasedServerRam = 0;
 
 	for (let i = 0; i < purchasedNum; i++)
 	{
-		let money = ns.getPlayer().money;
+		money = ns.getPlayer().money;
 		let server_name = purchased_servers[i];
 		let serverRam = ns.getServerMaxRam(server_name);
 		let nextRam = serverRam * 2;
