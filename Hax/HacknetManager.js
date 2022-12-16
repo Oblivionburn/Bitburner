@@ -8,7 +8,9 @@ export async function main(ns)
 
 	while (true)
 	{
-		var money = ns.getPlayer().money;
+		ns.resizeTail(400, 420);
+
+		var money = ns.getServerMoneyAvailable("home");
 		var nodesMax = ns.hacknet.maxNumNodes();
 		var owned = ns.hacknet.numNodes();
 		var nextNodeCost = ns.hacknet.getPurchaseNodeCost();

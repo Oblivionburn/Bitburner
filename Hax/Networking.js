@@ -1,6 +1,6 @@
 import {Data} from "./Hax/Data.js";
 import {colors} from "./Hax/Paint.js";
-import * as Database from "./Hax/DatabaseManager.js";
+import * as DB from "./Hax/Databasing.js";
 import * as Root from "./Hax/Root.js";
 
 let base_servers = [];
@@ -17,25 +17,27 @@ export async function main(ns)
 {
 	ns.disableLog("ALL");
     ns.tail(ns.getScriptName(), "home");
-
+	
 	await DeepScan(ns, "home");
-	await Database.Insert(ns, new Data("base_servers", base_servers));
-	await Database.Insert(ns, new Data("base_with_money", base_with_money));
-	await Database.Insert(ns, new Data("base_with_ram", base_with_ram));
+	await DB.Insert(ns, new Data("base_servers", base_servers));
+	await DB.Insert(ns, new Data("base_with_money", base_with_money));
+	await DB.Insert(ns, new Data("base_with_ram", base_with_ram));
 
     while (true)
     {
+		ns.resizeTail(320, 320);
+		
 		await Scan_PurchasedServers(ns);
-		await Database.Insert(ns, new Data("purchased_servers", purchased_servers));
+		await DB.Insert(ns, new Data("purchased_servers", purchased_servers));
 
 		await RootServers(ns);
 		await Scan_RootedServers(ns);
-		await Database.Insert(ns, new Data("rooted_servers", rooted_servers));
-		await Database.Insert(ns, new Data("rooted_with_money", rooted_with_money));
-		await Database.Insert(ns, new Data("rooted_with_ram", rooted_with_ram));
+		await DB.Insert(ns, new Data("rooted_servers", rooted_servers));
+		await DB.Insert(ns, new Data("rooted_with_money", rooted_with_money));
+		await DB.Insert(ns, new Data("rooted_with_ram", rooted_with_ram));
 
 		await Scan_AvailableServers(ns);
-		await Database.Insert(ns, new Data("available_servers", available_servers));
+		await DB.Insert(ns, new Data("available_servers", available_servers));
 
 		ns.clearLog();
 		await Log(ns);
@@ -46,16 +48,16 @@ export async function main(ns)
 
 async function Log(ns)
 {
-	ns.print(`${colors["white"] + "Base Servers: " + colors["green"] + base_servers.length}`);
-	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchased_servers.length}`);
+	ns.print(`${colors["white"] + "Base servers: " + colors["green"] + base_servers.length}`);
+	ns.print(`${colors["white"] + "Purchased servers: " + colors["green"] + purchased_servers.length}`);
 	ns.print("\n");
-	ns.print(`${colors["white"] + "Base Servers with money: " + colors["green"] + base_with_money.length}`);
-	ns.print(`${colors["white"] + "Rooted Base Servers with money: " + colors["green"] + rooted_with_money.length}`);
+	ns.print(`${colors["white"] + "Base servers with money: " + colors["green"] + base_with_money.length}`);
+	ns.print(`${colors["white"] + "Rooted/Hackable with money: " + colors["green"] + rooted_with_money.length}`);
 	ns.print("\n");
-	ns.print(`${colors["white"] + "Base Servers with ram: " + colors["green"] + base_with_ram.length}`);
-	ns.print(`${colors["white"] + "Rooted Base Servers with ram: " + colors["green"] + rooted_with_ram.length}`);
+	ns.print(`${colors["white"] + "Base servers with ram: " + colors["green"] + base_with_ram.length}`);
+	ns.print(`${colors["white"] + "Rooted with ram: " + colors["green"] + rooted_with_ram.length}`);
 	ns.print("\n");
-	ns.print(`${colors["white"] + "Total Servers with ram: " + colors["green"] + available_servers.length}`);
+	ns.print(`${colors["white"] + "Total servers with ram: " + colors["green"] + available_servers.length}`);
 	ns.print("\n");
 }
 
@@ -122,7 +124,8 @@ async function Scan_RootedServers(ns)
 			let server = rooted_servers[i];
 
 			if (base_with_money.includes(server) &&
-				!rooted_with_money.includes(server))
+				!rooted_with_money.includes(server) &&
+				ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(server))
 			{
 				rooted_with_money.push(server);
 			}

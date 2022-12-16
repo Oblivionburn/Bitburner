@@ -1,5 +1,5 @@
 import {colors} from "./Hax/Paint.js";
-import * as Database from "./Hax/DatabaseManager.js";
+import * as DB from "./Hax/Databasing.js";
 
 let money = 0;
 let serverRamLimit = 0;
@@ -23,7 +23,9 @@ export async function main(ns)
 
     while (true)
     {
-		purchased_servers = await Database.Select(ns, "purchased_servers");
+		ns.resizeTail(440, 160);
+
+		purchased_servers = await DB.Select(ns, "purchased_servers");
 		if (purchased_servers != null)
 		{
 			purchasedNum = purchased_servers.length;
@@ -49,7 +51,7 @@ async function Log(ns)
 
 async function BuyServer(ns)
 {
-	money = ns.getPlayer().money;
+	money = ns.getServerMoneyAvailable("home");
 
 	if (money >= serverCost &&
 		purchasedNum < serverNumLimit)
@@ -66,7 +68,7 @@ async function UpgradeServers(ns)
 
 	for (let i = 0; i < purchasedNum; i++)
 	{
-		money = ns.getPlayer().money;
+		money = ns.getServerMoneyAvailable("home");
 		let server_name = purchased_servers[i];
 		let serverRam = ns.getServerMaxRam(server_name);
 		let nextRam = serverRam * 2;

@@ -4,7 +4,7 @@ import {colors} from "./Hax/Paint.js";
 export async function main(ns)
 {
     ns.disableLog("ALL");
-    ns.tail(ns.getScriptName(), "home");
+    //ns.tail(ns.getScriptName(), "home");
     
     while (true)
     {

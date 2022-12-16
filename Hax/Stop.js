@@ -1,28 +1,41 @@
-import * as Database from "./Hax/DatabaseManager.js";
+import * as DB from "./Hax/Databasing.js";
 import {colors} from "./Hax/Paint.js";
 
 /** @param {NS} ns */
 export async function main(ns)
 {
-	let base_servers = await Database.Select(ns, "base_servers");
+	let base_servers = await DB.Select(ns, "base_servers");
 	for (let i = 0; i < base_servers.length; i++)
 	{
 		let server = base_servers[i];
-		RemoveScript(ns, "/Hax/Worker.js", server);
+		RemoveScript(ns, "/Hax/Grow.js", server);
+		RemoveScript(ns, "/Hax/Hack.js", server);
+		RemoveScript(ns, "/Hax/Weaken.js", server);
+		RemoveScript(ns, "/Hax/RunBatch.js", server);
 	}
 
-	let purchased_servers = await Database.Select(ns, "purchased_servers");
+	let purchased_servers = await DB.Select(ns, "purchased_servers");
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
-		RemoveScript(ns, "/Hax/Worker.js", server);
+		RemoveScript(ns, "/Hax/Grow.js", server);
+		RemoveScript(ns, "/Hax/Hack.js", server);
+		RemoveScript(ns, "/Hax/Weaken.js", server);
+		RemoveScript(ns, "/Hax/RunBatch.js", server);
 	}
 
-	let workerManager = ns.getRunningScript("/Hax/WorkerManager.js", "home");
-	if (workerManager != null)
+	let distributor = ns.getRunningScript("/Hax/Distributor.js", "home");
+	if (distributor != null)
 	{
-		ns.closeTail(workerManager.pid);
-		ns.scriptKill("/Hax/WorkerManager.js", "home");
+		ns.closeTail(distributor.pid);
+		ns.scriptKill("/Hax/Distributor.js", "home");
+	}
+
+	let scheduler = ns.getRunningScript("/Hax/Scheduler.js", "home");
+	if (scheduler != null)
+	{
+		ns.closeTail(scheduler.pid);
+		ns.scriptKill("/Hax/Scheduler.js", "home");
 	}
 
 	let serverManager = ns.getRunningScript("/Hax/ServerManager.js", "home");
@@ -32,18 +45,18 @@ export async function main(ns)
 		ns.scriptKill("/Hax/ServerManager.js", "home");
 	}
 	
-	let networkManager = ns.getRunningScript("/Hax/NetworkManager.js", "home");
-	if (networkManager != null)
+	let networking = ns.getRunningScript("/Hax/Networking.js", "home");
+	if (networking != null)
 	{
-		ns.closeTail(networkManager.pid);
-		ns.scriptKill("/Hax/NetworkManager.js", "home");
+		ns.closeTail(networking.pid);
+		ns.scriptKill("/Hax/Networking.js", "home");
 	}
 	
-	let database = ns.getRunningScript("/Hax/DatabaseManager.js", "home");
-	if (database != null)
+	let databasing = ns.getRunningScript("/Hax/Databasing.js", "home");
+	if (databasing != null)
 	{
-		ns.closeTail(database.pid);
-		ns.scriptKill("/Hax/DatabaseManager.js", "home");
+		ns.closeTail(databasing.pid);
+		ns.scriptKill("/Hax/Databasing.js", "home");
 	}
 
 	let hacknetManager = ns.getRunningScript("/Hax/HacknetManager.js", "home");
