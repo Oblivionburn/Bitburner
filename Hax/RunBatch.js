@@ -8,9 +8,12 @@ export async function main(ns)
 	let batch = JSON.parse(batchStr);
 
 	let target = batch.Target;
+	let growCost = batch.GrowCost;
 	let growThreads = batch.GrowThreads;
+	let hackCost = batch.HackCost;
 	let hackDelay = batch.HackDelay;
 	let hackThreads = batch.HackThreads;
+	let weakenCost = batch.WeakenCost;
 	let weakenDelay = batch.WeakenDelay;
 	let weakenThreads = batch.WeakenThreads;
 
@@ -23,12 +26,8 @@ export async function main(ns)
 	ns.print("Weaken Threads: " + weakenThreads);
 	ns.print("\n");
 
-	let growRamCost = ns.getScriptRam("/Hax/Grow.js") * growThreads;
-	let hackRamCost = ns.getScriptRam("/Hax/Hack.js") * hackThreads;
-	let weakenRamCost = ns.getScriptRam("/Hax/Weaken.js") * weakenThreads;
-
 	if (growThreads > 0 &&
-		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= growRamCost &&
+		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= growCost &&
 		!ns.isRunning("/Hax/Grow.js", server, growThreads, target))
 	{
 		ns.exec("/Hax/Grow.js", server, growThreads, target);
@@ -36,7 +35,7 @@ export async function main(ns)
 	}
 	
 	if (hackThreads > 0 &&
-		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= hackRamCost &&
+		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= hackCost &&
 		!ns.isRunning("/Hax/Hack.js", server, hackThreads, target, hackDelay))
 	{
 		ns.exec("/Hax/Hack.js", server, hackThreads, target, hackDelay);
@@ -44,7 +43,7 @@ export async function main(ns)
 	}
 	
 	if (weakenThreads > 0 &&
-		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= weakenRamCost &&
+		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= weakenCost &&
 		!ns.isRunning("/Hax/Weaken.js", server, weakenThreads, target, weakenDelay))
 	{
 		ns.exec("/Hax/Weaken.js", server, weakenThreads, target, weakenDelay);
