@@ -33,7 +33,7 @@ export async function main(ns)
 		await RootServers(ns);
 		await Scan_RootedServers(ns);
 		await DB.Insert(ns, new Data("rooted_servers", rooted_servers));
-		await DB.Insert(ns, new Data("rooted_with_money", rooted_with_money.sort((a,b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))));
+		await DB.Insert(ns, new Data("rooted_with_money", rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b))));
 		await DB.Insert(ns, new Data("rooted_with_ram", rooted_with_ram.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))));
 
 		await Scan_AvailableServers(ns);

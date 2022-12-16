@@ -32,7 +32,7 @@ async function RunSchedules(ns)
             let schedule = BatchSchedule.Schedule;
 
             await SendBatch(ns, target, schedule);
-            await ns.sleep(100);
+            await ns.sleep(1);
         }
     }
 }
@@ -72,48 +72,31 @@ async function CreateSchedule(ns, target)
     if (securityLevel <= minSecurityLevel)
     {
         let availableMoney = ns.getServerMoneyAvailable(target);
-        let maxMoney = ns.getServerMaxMoney(target) * 0.01;
+        let maxMoney = ns.getServerMaxMoney(target) * 0.005;
+        let growThresh = ns.getServerMaxMoney(target) * 0.5;
 
-        if (availableMoney < maxMoney)
+        if (availableMoney < growThresh)
         {
             //Server is at minSecurity but needs to be grown to the
             //  moneyThresh before being hacked
-            let moneyMulti = 0;
-            if (availableMoney > 0)
-            {
-                moneyMulti = maxMoney / availableMoney;
-            }
-            else
-            {
-                moneyMulti = maxMoney;
-            }
             
-            let growThreads = Math.ceil(ns.growthAnalyze(target, moneyMulti) / available_servers.length);
+            let growThreads = 1;
             let growTime = ns.getGrowTime(target);
-            let newSecurityLevel = securityLevel + ns.growthAnalyzeSecurity(growThreads, target, 1);
-
-            let hackThreads = Math.ceil(ns.hackAnalyzeThreads(target, maxMoney) / available_servers.length);
-            let hackTime = ns.getHackTime(target);
-            newSecurityLevel += ns.hackAnalyzeSecurity(hackThreads, target);
 
             let baseWeakenAmount = ns.weakenAnalyze(1);
             let weakenTime = ns.getWeakenTime(target);
-            let weakenThreads = Math.ceil(((newSecurityLevel - minSecurityLevel) / baseWeakenAmount) / available_servers.length);
+            let weakenThreads = Math.ceil((0.1 / baseWeakenAmount) / available_servers.length);
 
-            let totalDelay = growTime + hackTime + weakenTime;
+            let totalDelay = growTime + weakenTime;
 
             let growRamCost = Math.floor(ns.getScriptRam("/Hax/Grow.js", "home") * growThreads);
-            let hackRamCost = Math.floor(ns.getScriptRam("/Hax/Hack.js", "home") * hackThreads);
             let weakenRamCost = Math.floor(ns.getScriptRam("/Hax/Weaken.js", "home") * weakenThreads);
 
             schedule.push("TotalDelay:" + totalDelay);
             schedule.push("GrowCost:" + growRamCost);
             schedule.push("/Hax/Grow.js:" + growThreads);
-            schedule.push("HackCost:" + hackRamCost);
-            schedule.push("HackDelay:" + growTime);
-            schedule.push("/Hax/Hack.js:" + hackThreads);
             schedule.push("WeakenCost:" + weakenRamCost);
-            schedule.push("WeakenDelay:" + growTime + hackTime);
+            schedule.push("WeakenDelay:" + growTime);
             schedule.push("/Hax/Weaken.js:" + weakenThreads);
         }
         else
@@ -121,11 +104,10 @@ async function CreateSchedule(ns, target)
             //Server is prepped at minSecurity and >= maxMoney
             let hackThreads = Math.ceil(ns.hackAnalyzeThreads(target, maxMoney) / available_servers.length);
             let hackTime = ns.getHackTime(target);
-            let newSecurityLevel = ns.hackAnalyzeSecurity(hackThreads, target);
 
             let baseWeakenAmount = ns.weakenAnalyze(1);
             let weakenTime = ns.getWeakenTime(target);
-            let weakenThreads = Math.ceil(((newSecurityLevel - minSecurityLevel) / baseWeakenAmount) / available_servers.length);
+            let weakenThreads = Math.ceil((0.1 / baseWeakenAmount) / available_servers.length);
             let totalDelay = hackTime + weakenTime;
 
             let hackRamCost = Math.floor(ns.getScriptRam("/Hax/Hack.js", "home") * hackThreads);
@@ -144,7 +126,7 @@ async function CreateSchedule(ns, target)
         //Server needs to be weakened to minSecurity
         let baseWeakenAmount = ns.weakenAnalyze(1);
         let weakenTime = ns.getWeakenTime(target);
-        let weakenThreads = Math.ceil(((securityLevel - minSecurityLevel) / baseWeakenAmount) / available_servers.length);
+        let weakenThreads = Math.ceil(((0.1 / baseWeakenAmount) / available_servers.length));
         let weakenRamCost = Math.floor(ns.getScriptRam("/Hax/Weaken.js", "home") * weakenThreads);
 
         schedule.push("TotalDelay:" + weakenTime);
@@ -239,9 +221,12 @@ async function SendBatch(ns, target, schedule)
                 if (availableRam >= totalCost)
                 {
                     ranBatch = true;
-                    //ns.tprint("Total cost for " + server + ": " + totalCost);
                     await ns.exec("/Hax/RunBatch.js", server, 1, batchStr);
-                    await ns.sleep(100);
+                    await ns.sleep(1);
+                }
+                else
+                {
+                    //ns.tprint(server + " doesn't have enough ram for: " + totalCost);
                 }
             }
         }
