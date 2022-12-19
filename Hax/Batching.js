@@ -4,8 +4,9 @@ import * as DB from "./Hax/Databasing.js";
 let available_servers = [];
 let targets = [];
 let batches_running = [];
-let weaken_running = [];
 let grow_running = [];
+let weaken_running = [];
+let hack_running = [];
 let growThreshFactor = 0.5;
 
 /** @param {NS} ns */
@@ -42,21 +43,19 @@ async function Batching(ns, targets)
 
             let money = ns.getServerMoneyAvailable(target);
             let maxMoney = ns.getServerMaxMoney(target);
-            let security = ns.getServerSecurityLevel(target);
+            let security = Math.floor(ns.getServerSecurityLevel(target));
             let minSecurity = ns.getServerMinSecurityLevel(target);
             let growThresh = maxMoney * growThreshFactor;
 
             let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
             if (prepped)
             {
-                //ns.print(`${colors["white"] + DTStamp() + colors["green"] + target + " is prepped"}`);
-
                 let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney);
-                await SendBatch(ns, Batch);
+                let Hack = await HackOrder(ns, 0, target, security, minSecurity);
+                await SendBatch(ns, Batch, Hack);
             }
             else
             {
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + target + " is not prepped"}`);
                 if (security > minSecurity)
                 {
                     let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity);
@@ -108,7 +107,7 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney)
 }
 
 /** @param {NS} ns */
-async function SendBatch(ns, batch)
+async function SendBatch(ns, batch, hack)
 {
     let availableCount = await AvailableCount();
     for (let i = 0; i < availableCount; i++)
@@ -134,7 +133,43 @@ async function SendBatch(ns, batch)
         }
         else
         {
+            SendHack(ns, hack);
             //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start batch against " + batch.Target + " for " + batch.Cost + " GB"}`);
+        }
+    }
+}
+
+/** @param {NS} ns */
+async function SendGrow(ns, grow)
+{
+    let availableCount = await AvailableCount();
+    for (let i = 0; i < availableCount; i++)
+    {
+        let host = available_servers[i];
+
+        for (let t = grow.Threads; t > 0; t--)
+        {
+            let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+            if (availableRam >= grow.Cost)
+            {
+                let isGrowRunning = await IsGrowRunning(grow.Target);
+                if (!isGrowRunning)
+                {
+                    ns.exec(grow.Script, host, grow.Threads, grow.Target, grow.Delay);
+                    grow_running.push(grow);
+                    ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started growing " + grow.Target + " with " + grow.Threads + " threads"}`);
+                }
+                else
+                {
+                    //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Grow is already running for " + grow.Target}`);
+                }
+            }
+            else
+            {
+                grow.Threads--;
+                grow.Cost = await GetCost(ns, grow.Script, grow.Threads);
+                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start growing " + grow.Target + " for " + grow.Cost + " GB"}`);
+            }
         }
     }
 }
@@ -175,35 +210,35 @@ async function SendWeaken(ns, weaken)
 }
 
 /** @param {NS} ns */
-async function SendGrow(ns, grow)
+async function SendHack(ns, hack)
 {
     let availableCount = await AvailableCount();
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
 
-        for (let t = grow.Threads; t > 0; t--)
+        for (let t = hack.Threads; t > 0; t--)
         {
             let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-            if (availableRam >= grow.Cost)
+            if (availableRam >= hack.Cost)
             {
-                let isGrowRunning = await IsGrowRunning(grow.Target);
-                if (!isGrowRunning)
+                let isHackRunning = await IsHackRunning(hack.Target);
+                if (!isHackRunning)
                 {
-                    ns.exec(grow.Script, host, grow.Threads, grow.Target, grow.Delay);
-                    grow_running.push(grow);
-                    ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started growing " + grow.Target + " with " + grow.Threads + " threads"}`);
+                    ns.exec(hack.Script, host, hack.Threads, hack.Target, hack.Delay);
+                    hack_running.push(grow);
+                    ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started hacking " + hack.Target + " with " + hack.Threads + " threads"}`);
                 }
                 else
                 {
-                    //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Grow is already running for " + grow.Target}`);
+                    //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Hack is already running for " + hack.Target}`);
                 }
             }
             else
             {
-                grow.Threads--;
-                grow.Cost = await GetCost(ns, grow.Script, grow.Threads);
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start growing " + grow.Target + " for " + grow.Cost + " GB"}`);
+                hack.Threads--;
+                hack.Cost = await GetCost(ns, hack.Script, hack.Threads);
+                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start hacking " + hack.Target + " for " + hack.Cost + " GB"}`);
             }
         }
     }
@@ -342,6 +377,28 @@ async function IsBatchRunning(target)
     return false;
 }
 
+async function IsGrowRunning(target)
+{
+    for (let i = 0; i < grow_running.length; i++)
+    {
+        let Grow = grow_running[i];
+        if (Grow.Target == target)
+        {
+            if (Date.now() > Grow.EndTime)
+            {
+                grow_running.splice(i, 1);
+                i--;
+            }
+            else if (Date.now() <= Grow.EndTime)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 async function IsWeakenRunning(target)
 {
     for (let i = 0; i < weaken_running.length; i++)
@@ -364,19 +421,19 @@ async function IsWeakenRunning(target)
     return false;
 }
 
-async function IsGrowRunning(target)
+async function IsHackRunning(target)
 {
-    for (let i = 0; i < grow_running.length; i++)
+    for (let i = 0; i < hack_running.length; i++)
     {
-        let Grow = grow_running[i];
-        if (Grow.Target == target)
+        let Hack = hack_running[i];
+        if (Hack.Target == target)
         {
-            if (Date.now() > Grow.EndTime)
+            if (Date.now() > Hack.EndTime)
             {
-                grow_running.splice(i, 1);
+                hack_running.splice(i, 1);
                 i--;
             }
-            else if (Date.now() <= Grow.EndTime)
+            else if (Date.now() <= Hack.EndTime)
             {
                 return true;
             }
