@@ -32,8 +32,8 @@ export async function main(ns)
 		await RootServers(ns);
 		await Scan_RootedServers(ns);
 		await DB.Insert(ns, {Name: "rooted_servers", List: rooted_servers});
-		await DB.Insert(ns, {Name: "rooted_with_money", List: rooted_with_money.sort((a,b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))});
-		await DB.Insert(ns, {Name: "rooted_with_ram", List: rooted_with_ram.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))});
+		await DB.Insert(ns, {Name: "rooted_with_money", List: rooted_with_money});
+		await DB.Insert(ns, {Name: "rooted_with_ram", List: rooted_with_ram});
 
 		await Scan_AvailableServers(ns);
 		await DB.Insert(ns, {Name: "available_servers", List: available_servers});
@@ -135,6 +135,9 @@ async function Scan_RootedServers(ns)
 				rooted_with_ram.push(server);
 			}
 		}
+
+		rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
+		rooted_with_ram.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
 	}
 }
 
@@ -179,5 +182,7 @@ async function Scan_AvailableServers(ns)
 				available_servers.push(server);
 			}
 		}
+
+		available_servers.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
 	}
 }

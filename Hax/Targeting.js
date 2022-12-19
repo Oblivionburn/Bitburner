@@ -13,6 +13,8 @@ export async function main(ns)
     while (true)
     {
         rooted_with_money = await DB.Select(ns, "rooted_with_money");
+		rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
+
 		await GetTargets(ns);
         await DB.Insert(ns, {Name: "targets", List: targets});
 		await Log(ns);
@@ -32,8 +34,11 @@ async function GetTargets(ns)
 		{
 			let target = rooted_with_money[i];
 
+			let minHack = hackLevel / 10;
 			let requiredHack = ns.getServerRequiredHackingLevel(target);
-			if (hackLevel >= requiredHack &&
+			let maxHack = ns.getServerRequiredHackingLevel(target) * 2;
+			if (hackLevel >= maxHack &&
+				requiredHack >= minHack &&
 				!targets.includes(target))
 			{
 				targets.push(target);
