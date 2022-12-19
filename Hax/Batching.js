@@ -50,12 +50,14 @@ async function Batching(ns, targets)
             let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
             if (prepped)
             {
+                //ns.print(`${colors["white"] + DTStamp() + colors["yellow"] + target + " is prepped"}`);
                 let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney);
                 let Hack = await HackOrder(ns, 0, target, security, minSecurity);
                 await SendBatch(ns, Batch, Hack);
             }
             else
             {
+                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + target + " is not prepped"}`);
                 if (security > minSecurity)
                 {
                     let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity);
@@ -133,8 +135,8 @@ async function SendBatch(ns, batch, hack)
         }
         else
         {
-            SendHack(ns, hack);
             //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start batch against " + batch.Target + " for " + batch.Cost + " GB"}`);
+            SendHack(ns, hack);
         }
     }
 }
@@ -143,9 +145,13 @@ async function SendBatch(ns, batch, hack)
 async function SendGrow(ns, grow)
 {
     let availableCount = await AvailableCount();
+    //ns.print(`${colors["white"] + "Available Servers: " + availableCount}`);
+
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
+
+        let startingThreads = grow.Threads;
 
         for (let t = grow.Threads; t > 0; t--)
         {
@@ -166,11 +172,14 @@ async function SendGrow(ns, grow)
             }
             else
             {
+                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start growing " + grow.Target + " for " + grow.Cost + " GB"}`);
                 grow.Threads--;
                 grow.Cost = await GetCost(ns, grow.Script, grow.Threads);
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start growing " + grow.Target + " for " + grow.Cost + " GB"}`);
             }
         }
+
+        grow.Threads = startingThreads;
+        grow.Cost = await GetCost(ns, grow.Script, grow.Threads);
     }
 }
 
@@ -181,6 +190,8 @@ async function SendWeaken(ns, weaken)
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
+
+        let startingThreads = weaken.Threads;
 
         for (let t = weaken.Threads; t > 0; t--)
         {
@@ -206,6 +217,9 @@ async function SendWeaken(ns, weaken)
                 //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start weakening " + weaken.Target + " for " + weaken.Cost + " GB"}`);
             }
         }
+
+        weaken.Threads = startingThreads;
+        weaken.Cost = await GetCost(ns, weaken.Script, weaken.Threads);
     }
 }
 
@@ -216,6 +230,8 @@ async function SendHack(ns, hack)
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
+
+        let startingThreads = hack.Threads;
 
         for (let t = hack.Threads; t > 0; t--)
         {
@@ -236,11 +252,14 @@ async function SendHack(ns, hack)
             }
             else
             {
+                ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start hacking " + hack.Target + " for " + hack.Cost + " GB"}`);
                 hack.Threads--;
                 hack.Cost = await GetCost(ns, hack.Script, hack.Threads);
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start hacking " + hack.Target + " for " + hack.Cost + " GB"}`);
             }
         }
+
+        hack.Threads = startingThreads;
+        hack.Cost = await GetCost(ns, hack.Script, hack.Threads);
     }
 }
 
