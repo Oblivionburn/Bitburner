@@ -1,4 +1,4 @@
-import {colors} from "./Hax/Paint.js";
+import {colors} from "./Hax/UI.js";
 
 /** @param {NS} ns */
 export async function main(ns)

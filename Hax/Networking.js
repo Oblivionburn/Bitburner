@@ -1,5 +1,4 @@
-import {Data} from "./Hax/Data.js";
-import {colors} from "./Hax/Paint.js";
+import {colors} from "./Hax/UI.js";
 import * as DB from "./Hax/Databasing.js";
 import * as Root from "./Hax/Root.js";
 
@@ -19,27 +18,26 @@ export async function main(ns)
     ns.tail(ns.getScriptName(), "home");
 	
 	await DeepScan(ns, "home");
-	await DB.Insert(ns, new Data("base_servers", base_servers));
-	await DB.Insert(ns, new Data("base_with_money", base_with_money));
-	await DB.Insert(ns, new Data("base_with_ram", base_with_ram));
+	await DB.Insert(ns, {Name: "base_servers", List: base_servers});
+	await DB.Insert(ns, {Name: "base_with_money", List: base_with_money});
+	await DB.Insert(ns, {Name: "base_with_ram", List: base_with_ram});
 
     while (true)
     {
 		ns.resizeTail(320, 320);
 		
 		await Scan_PurchasedServers(ns);
-		await DB.Insert(ns, new Data("purchased_servers", purchased_servers));
+		await DB.Insert(ns, {Name: "purchased_servers", List: purchased_servers});
 
 		await RootServers(ns);
 		await Scan_RootedServers(ns);
-		await DB.Insert(ns, new Data("rooted_servers", rooted_servers));
-		await DB.Insert(ns, new Data("rooted_with_money", rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b))));
-		await DB.Insert(ns, new Data("rooted_with_ram", rooted_with_ram.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))));
+		await DB.Insert(ns, {Name: "rooted_servers", List: rooted_servers});
+		await DB.Insert(ns, {Name: "rooted_with_money", List: rooted_with_money.sort((a,b) => ns.getServerMaxMoney(b) - ns.getServerMaxMoney(a))});
+		await DB.Insert(ns, {Name: "rooted_with_ram", List: rooted_with_ram.sort((a,b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a))});
 
 		await Scan_AvailableServers(ns);
-		await DB.Insert(ns, new Data("available_servers", available_servers));
+		await DB.Insert(ns, {Name: "available_servers", List: available_servers});
 
-		ns.clearLog();
 		await Log(ns);
 		
 		await ns.sleep(1000);
@@ -48,6 +46,7 @@ export async function main(ns)
 
 async function Log(ns)
 {
+	ns.clearLog();
 	ns.print(`${colors["white"] + "Base servers: " + colors["green"] + base_servers.length}`);
 	ns.print(`${colors["white"] + "Purchased servers: " + colors["green"] + purchased_servers.length}`);
 	ns.print("\n");

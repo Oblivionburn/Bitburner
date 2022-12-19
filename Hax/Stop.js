@@ -1,41 +1,51 @@
 import * as DB from "./Hax/Databasing.js";
-import {colors} from "./Hax/Paint.js";
+import {colors} from "./Hax/UI.js";
 
 /** @param {NS} ns */
 export async function main(ns)
 {
+	let scripts = ["/Hax/Grow.js", "/Hax/Hack.js", "/Hax/Weaken.js", "/Hax/RunBatch.js"];
+
 	let base_servers = await DB.Select(ns, "base_servers");
 	for (let i = 0; i < base_servers.length; i++)
 	{
 		let server = base_servers[i];
-		RemoveScript(ns, "/Hax/Grow.js", server);
-		RemoveScript(ns, "/Hax/Hack.js", server);
-		RemoveScript(ns, "/Hax/Weaken.js", server);
-		RemoveScript(ns, "/Hax/RunBatch.js", server);
+
+		for (let s = 0; s < scripts.length; s++)
+		{
+			RemoveScript(ns, scripts[s], server);
+		}
 	}
 
 	let purchased_servers = await DB.Select(ns, "purchased_servers");
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
-		RemoveScript(ns, "/Hax/Grow.js", server);
-		RemoveScript(ns, "/Hax/Hack.js", server);
-		RemoveScript(ns, "/Hax/Weaken.js", server);
-		RemoveScript(ns, "/Hax/RunBatch.js", server);
+		for (let s = 0; s < scripts.length; s++)
+		{
+			RemoveScript(ns, scripts[s], server);
+		}
 	}
 
-	let distributor = ns.getRunningScript("/Hax/Distributor.js", "home");
-	if (distributor != null)
+	let batching = ns.getRunningScript("/Hax/Batching.js", "home");
+	if (batching != null)
 	{
-		ns.closeTail(distributor.pid);
-		ns.scriptKill("/Hax/Distributor.js", "home");
+		ns.closeTail(batching.pid);
+		ns.scriptKill("/Hax/Batching.js", "home");
 	}
 
-	let scheduler = ns.getRunningScript("/Hax/Scheduler.js", "home");
-	if (scheduler != null)
+	let distributing = ns.getRunningScript("/Hax/Distributing.js", "home");
+	if (distributing != null)
 	{
-		ns.closeTail(scheduler.pid);
-		ns.scriptKill("/Hax/Scheduler.js", "home");
+		ns.closeTail(distributing.pid);
+		ns.scriptKill("/Hax/Distributing.js", "home");
+	}
+
+	let targeting = ns.getRunningScript("/Hax/Targeting.js", "home");
+	if (targeting != null)
+	{
+		ns.closeTail(targeting.pid);
+		ns.scriptKill("/Hax/Targeting.js", "home");
 	}
 
 	let serverManager = ns.getRunningScript("/Hax/ServerManager.js", "home");

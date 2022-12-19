@@ -1,4 +1,4 @@
-import {colors} from "./Hax/Paint.js";
+import {colors} from "./Hax/UI.js";
 import * as DB from "./Hax/Databasing.js";
 
 let money = 0;

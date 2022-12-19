@@ -7,46 +7,21 @@ export async function main(ns)
 	let batchStr = ns.args[0];
 	let batch = JSON.parse(batchStr);
 
-	let target = batch.Target;
-	let growCost = batch.GrowCost;
-	let growThreads = batch.GrowThreads;
-	let hackCost = batch.HackCost;
-	let hackDelay = batch.HackDelay;
-	let hackThreads = batch.HackThreads;
-	let weakenCost = batch.WeakenCost;
-	let weakenDelay = batch.WeakenDelay;
-	let weakenThreads = batch.WeakenThreads;
-
 	ns.clearLog();
-	ns.print("Target: " + target);
-	ns.print("GrowThreads: " + growThreads);
-	ns.print("HackDelay: " + hackDelay);
-	ns.print("HackThreads: " + hackThreads);
-	ns.print("WeakenDelay: " + weakenDelay);
-	ns.print("Weaken Threads: " + weakenThreads);
-	ns.print("\n");
 
-	if (growThreads > 0 &&
-		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= growCost &&
-		!ns.isRunning("/Hax/Grow.js", server, growThreads, target))
+	let orders = batch.Orders;
+	for (let i = 0; i < orders.length; i++)
 	{
-		ns.exec("/Hax/Grow.js", server, growThreads, target);
-		ns.print("Ran Grow.js");
+		let order = orders[i];
+		if (AvailableRam(ns) >= order.Cost)
+		{
+			ns.exec(order.Script, server, order.Threads, order.Target, order.Delay);
+			ns.print("Ran '" + order.Script + "' script against " + order.Target + " with " + order.Threads + " threads and delay of " + order.Delay);
+		}
 	}
-	
-	if (hackThreads > 0 &&
-		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= hackCost &&
-		!ns.isRunning("/Hax/Hack.js", server, hackThreads, target, hackDelay))
-	{
-		ns.exec("/Hax/Hack.js", server, hackThreads, target, hackDelay);
-		ns.print("Ran Hack.js");
-	}
-	
-	if (weakenThreads > 0 &&
-		(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) >= weakenCost &&
-		!ns.isRunning("/Hax/Weaken.js", server, weakenThreads, target, weakenDelay))
-	{
-		ns.exec("/Hax/Weaken.js", server, weakenThreads, target, weakenDelay);
-		ns.print("Ran Weaken.js");
-	}
+}
+
+function AvailableRam(ns)
+{
+	return ns.getServerMaxRam(server) - ns.getServerUsedRam(server);
 }

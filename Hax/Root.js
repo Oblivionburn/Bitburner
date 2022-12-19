@@ -1,4 +1,4 @@
-import {colors} from "./Hax/Paint.js";
+import {colors} from "./Hax/UI.js";
 
 export async function Access(ns, server)
 {

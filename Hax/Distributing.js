@@ -26,22 +26,10 @@ async function DistributeScripts(ns)
         {
             let server = available_servers[i];
 
-            if (!ns.fileExists("/Hax/Weaken.js", server))
-            {
-                ns.scp("/Hax/Weaken.js", server, "home");
-            }
-            if (!ns.fileExists("/Hax/Grow.js", server))
-            {
-                ns.scp("/Hax/Grow.js", server, "home");
-            }
-            if (!ns.fileExists("/Hax/Hack.js", server))
-            {
-                ns.scp("/Hax/Hack.js", server, "home");
-            }
-            if (!ns.fileExists("/Hax/RunBatch.js", server))
-            {
-                ns.scp("/Hax/RunBatch.js", server, "home");
-            }
+            ns.scp("/Hax/Weaken.js", server, "home");
+            ns.scp("/Hax/Grow.js", server, "home");
+            ns.scp("/Hax/Hack.js", server, "home");
+            ns.scp("/Hax/RunBatch.js", server, "home");
         }
     }
 }
