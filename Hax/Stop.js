@@ -41,6 +41,13 @@ export async function main(ns)
 		ns.scriptKill("/Hax/Distributing.js", "home");
 	}
 
+	let monitor = ns.getRunningScript("/Hax/Monitor.js", "home");
+	if (monitor != null)
+	{
+		ns.closeTail(monitor.pid);
+		ns.scriptKill("/Hax/Monitor.js", "home");
+	}
+
 	let targeting = ns.getRunningScript("/Hax/Targeting.js", "home");
 	if (targeting != null)
 	{
@@ -67,13 +74,6 @@ export async function main(ns)
 	{
 		ns.closeTail(databasing.pid);
 		ns.scriptKill("/Hax/Databasing.js", "home");
-	}
-
-	let hacknetManager = ns.getRunningScript("/Hax/HacknetManager.js", "home");
-	if (hacknetManager != null)
-	{
-		ns.closeTail(hacknetManager.pid);
-		ns.scriptKill("/Hax/HacknetManager.js", "home");
 	}
 
 	ns.tprint(`${colors["white"] + "Hax has stopped."}`);
