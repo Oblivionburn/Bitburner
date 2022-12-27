@@ -37,7 +37,7 @@ async function Batching(ns, targets)
         {
             let target = targets[0];
 
-            for (let scale = 1; scale > 0; scale -= 0.1)
+            for (let scale = 1.0; scale > 0.01; scale -= 0.01)
             {
                 let sent = false;
                 
@@ -358,13 +358,13 @@ async function IsBatchRunning(newBatch)
         let Batch = batches_running[i];
         if (Batch.Target == newBatch.Target)
         {
-            if (Date.now() >= Batch.EndTime)
+            if (Date.now() > Batch.EndTime + 1)
             {
                 batches_running.splice(i, 1);
                 i--;
             }
             else if (Batch.Host == newBatch.Host &&
-                     Date.now() < Batch.EndTime)
+                     Date.now() <= Batch.EndTime)
             {
                 return true;
             }
@@ -385,7 +385,7 @@ async function IsGrowRunning(target)
         let Grow = grow_running[i];
         if (Grow.Target == target)
         {
-            if (Date.now() > Grow.EndTime)
+            if (Date.now() > Grow.EndTime + 1)
             {
                 grow_running.splice(i, 1);
                 i--;
@@ -407,7 +407,7 @@ async function IsWeakenRunning(target)
         let Weaken = weaken_running[i];
         if (Weaken.Target == target)
         {
-            if (Date.now() > Weaken.EndTime)
+            if (Date.now() > Weaken.EndTime + 1)
             {
                 weaken_running.splice(i, 1);
                 i--;
@@ -429,7 +429,7 @@ async function IsHackRunning(target)
         let Hack = hack_running[i];
         if (Hack.Target == target)
         {
-            if (Date.now() > Hack.EndTime)
+            if (Date.now() > Hack.EndTime + 1)
             {
                 hack_running.splice(i, 1);
                 i--;
