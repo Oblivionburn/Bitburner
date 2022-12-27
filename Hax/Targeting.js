@@ -3,6 +3,9 @@ import * as DB from "./Hax/Databasing.js";
 
 let rooted_with_money = [];
 let targets = [];
+let hackLevel = 0;
+let minHack = 0;
+let maxHack = 0;
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -15,6 +18,10 @@ export async function main(ns)
         rooted_with_money = await DB.Select(ns, "rooted_with_money");
 		rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
 
+		hackLevel = ns.getHackingLevel();
+		minHack = Math.floor(hackLevel / 10);
+		maxHack = Math.floor(hackLevel / 5);
+
 		await GetTargets(ns);
         await DB.Insert(ns, {Name: "targets", List: targets});
 		await Log(ns);
@@ -24,8 +31,6 @@ export async function main(ns)
 
 async function GetTargets(ns)
 {
-	let hackLevel = ns.getHackingLevel();
-
 	if (rooted_with_money != null &&
 		rooted_with_money.length > 0)
 	{
@@ -33,10 +38,8 @@ async function GetTargets(ns)
 		for (let i = 0; i < rootedCount; i++)
 		{
 			let target = rooted_with_money[i];
-
-			let minHack = Math.floor(hackLevel / 10);
 			let requiredHack = ns.getServerRequiredHackingLevel(target);
-			let maxHack = Math.floor(hackLevel / 5);
+
 			if (requiredHack >= minHack &&
 				requiredHack <= maxHack &&
 				!targets.includes(target))
@@ -50,6 +53,8 @@ async function GetTargets(ns)
 async function Log(ns)
 {
 	ns.clearLog();
+	ns.print(`${colors["white"] + "Min: " + minHack + ", Max: " + maxHack}`);
+	ns.print("\n");
 	ns.print(`${colors["yellow"] + "Targets:"}`);
 
 	for (let i = 0; i < targets.length; i++)

@@ -35,56 +35,50 @@ async function Batching(ns, targets)
         let availableCount = await AvailableCount();
         if (availableCount > 0)
         {
-            let targetCount = targets.length;
-            for (let i = 0; i < 1; i++)
+            let target = targets[0];
+
+            for (let scale = 1; scale > 0; scale -= 0.1)
             {
-                let target = targets[i];
+                let sent = false;
+                
+                let money = ns.getServerMoneyAvailable(target);
+                let maxMoney = ns.getServerMaxMoney(target);
+                let security = ns.getServerSecurityLevel(target);
+                let minSecurity = ns.getServerMinSecurityLevel(target);
+                let growThresh = maxMoney * growThreshFactor;
 
-                for (let scale = 1; scale > 0; scale -= 0.1)
+                let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
+                if (prepped)
                 {
-                    let sent = false;
-                    
-                    let money = ns.getServerMoneyAvailable(target);
-                    let maxMoney = ns.getServerMaxMoney(target);
-                    let security = ns.getServerSecurityLevel(target);
-                    let minSecurity = ns.getServerMinSecurityLevel(target);
-                    let growThresh = maxMoney * growThreshFactor;
+                    let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
+                    if (Batch != null)
+                    {
+                        sent = await SendBatch(ns, Batch);
+                    }
+                }
+                else
+                {
+                    if (security > minSecurity)
+                    {
+                        let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity, scale);
+                        if (Weaken.Threads > 0)
+                        {
+                            sent = await SendWeaken(ns, Weaken);
+                        }
+                    }
+                    else if (money < growThresh)
+                    {
+                        let Grow = await GrowOrder(ns, 0, target, money, maxMoney, scale);
+                        if (Grow.Threads > 0)
+                        {
+                            sent = await SendGrow(ns, Grow);
+                        }
+                    }
+                }
 
-                    let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
-                    if (prepped)
-                    {
-                        //ns.print(`${colors["white"] + DTStamp() + colors["yellow"] + target + " is prepped"}`);
-                        let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
-                        if (Batch != null)
-                        {
-                            sent = await SendBatch(ns, Batch);
-                        }
-                    }
-                    else
-                    {
-                        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + target + " is not prepped"}`);
-                        if (security > minSecurity)
-                        {
-                            let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity, scale);
-                            if (Weaken.Threads > 0)
-                            {
-                                sent = await SendWeaken(ns, Weaken);
-                            }
-                        }
-                        else if (money < growThresh)
-                        {
-                            let Grow = await GrowOrder(ns, 0, target, money, maxMoney, scale);
-                            if (Grow.Threads > 0)
-                            {
-                                sent = await SendGrow(ns, Grow);
-                            }
-                        }
-                    }
-
-                    if (sent)
-                    {
-                        break;
-                    }
+                if (sent)
+                {
+                    break;
                 }
             }
         }
@@ -126,7 +120,6 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 
         let batch =
         {
-            Host: "",
             Target: target,
             StartTime: Date.now(),
             EndTime: endTime,
@@ -136,22 +129,6 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 
         return batch;
     }
-    else if (WeakenOne.Threads <= 0)
-    {
-        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "0 threads for WeakenOne"}`);
-    }
-    else if (WeakenTwo.Threads <= 0)
-    {
-        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "0 threads for WeakenTwo"}`);
-    }
-    else if (Grow.Threads <= 0)
-    {
-        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "0 threads for Grow"}`);
-    }
-    else if (Hack.Threads <= 0)
-    {
-        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "0 threads for Hack"}`);
-    }
     
     return null;
 }
@@ -160,7 +137,6 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 async function GrowOrder(ns, delay, target, money, maxMoney, scale)
 {
     let growThresh = maxMoney * growThreshFactor;
-
     let growMulti = growThresh;
     if (money > 0)
     {
@@ -170,7 +146,6 @@ async function GrowOrder(ns, delay, target, money, maxMoney, scale)
     let script = "/Hax/Grow.js";
     let threads = Math.ceil(ns.growthAnalyze(target, 1 + Math.ceil(growMulti), 1) * scale);
     let securityDiff = ns.growthAnalyzeSecurity(threads, target, 1);
-
     let time = ns.getGrowTime(target);
     let cost = await GetCost(ns, script, threads);
 
@@ -197,11 +172,7 @@ async function WeakenOrder(ns, delay, target, security, minSecurity, scale)
     let baseWeakenAmount = ns.weakenAnalyze(1, 1);
     let time = ns.getWeakenTime(target);
     let securityReduce = security - minSecurity;
-
-    //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Security Reduce: " + securityReduce}`);
-
     let threads = Math.ceil((securityReduce / baseWeakenAmount) * scale);
-
     let cost = await GetCost(ns, script, threads);
 
     let order =
@@ -259,9 +230,7 @@ async function SendBatch(ns, batch)
         let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
         if (availableRam >= batch.Cost)
         {
-            batch.Host = host;
-            
-            let isBatchRunning = await IsBatchRunning(host, batch.Target);
+            let isBatchRunning = await IsBatchRunning(batch.Target);
             if (!isBatchRunning)
             {
                 let str = JSON.stringify(batch);
@@ -272,15 +241,6 @@ async function SendBatch(ns, batch)
 
                 return true;
             }
-            else
-            {
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Batch is already running for " + batch.Target}`);
-            }
-        }
-        else
-        {
-            //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start batch against " + 
-            //  batch.Target + " for " + batch.Cost + " GB"}`);
         }
     }
 
@@ -307,15 +267,6 @@ async function SendGrow(ns, grow)
                 ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started growing " + grow.Target + " with " + grow.Threads + " threads"}`);
                 return true;
             }
-            else
-            {
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Grow is already running for " + grow.Target}`);
-            }
-        }
-        else
-        {
-            //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start growing " + 
-            //  grow.Target + " for " + grow.Cost + " GB"}`);
         }
     }
 
@@ -341,15 +292,6 @@ async function SendWeaken(ns, weaken)
                 ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started weakening " + weaken.Target + " with " + weaken.Threads + " threads"}`);
                 return true;
             }
-            else
-            {
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Weaken is already running for " + weaken.Target}`);
-            }
-        }
-        else
-        {
-            //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start weakening " + 
-            //  weaken.Target + " for " + weaken.Cost + " GB"}`);
         }
     }
 
@@ -375,15 +317,6 @@ async function SendHack(ns, hack)
                 ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started hacking " + hack.Target + " with " + hack.Threads + " threads"}`);
                 return true;
             }
-            else
-            {
-                //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Hack is already running for " + hack.Target}`);
-            }
-        }
-        else
-        {
-            //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Not enough RAM on " + host + " to start hacking " + 
-            //  hack.Target + " for " + hack.Cost + " GB"}`);
         }
     }
 
@@ -408,26 +341,17 @@ async function IsServerPrepped(ns, security, minSecurity, money, growThresh)
         {
             return true;
         }
-        else
-        {
-            //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Money: $" + money.toLocaleString() + ", Grow Thresh: $" + growThresh.toLocaleString()}`);
-        }
-    }
-    else
-    {
-        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Security: " + security + ", Min Security: " + minSecurity}`);
     }
 
     return false;
 }
 
-async function IsBatchRunning(host, target)
+async function IsBatchRunning(target)
 {
     for (let i = 0; i < batches_running.length; i++)
     {
         let Batch = batches_running[i];
-        if (Batch.Host == host &&
-            Batch.Target == target)
+        if (Batch.Target == target)
         {
             if (Date.now() > Batch.StartTime + 400)
             {
