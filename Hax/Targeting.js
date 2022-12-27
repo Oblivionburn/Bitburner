@@ -59,6 +59,6 @@ async function Log(ns)
 
 	for (let i = 0; i < targets.length; i++)
 	{
-		ns.print(`${colors["white"] + targets[i]}`);
+		ns.print(`${colors["white"] + targets[i] + ": " + ns.getServerRequiredHackingLevel(targets[i])}`);
 	}
 }

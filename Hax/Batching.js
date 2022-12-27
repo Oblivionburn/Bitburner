@@ -354,15 +354,19 @@ async function IsBatchRunning(newBatch)
     for (let i = 0; i < batches_running.length; i++)
     {
         let Batch = batches_running[i];
-        if (Batch.Target == newBatch.Target &&
-            Batch.Host == newBatch.Host)
+        if (Batch.Target == newBatch.Target)
         {
             if (Date.now() >= Batch.EndTime)
             {
                 batches_running.splice(i, 1);
                 i--;
             }
-            else if (Date.now() < Batch.EndTime)
+            else if (Batch.Host == newBatch.Host &&
+                     Date.now() < Batch.EndTime)
+            {
+                return true;
+            }
+            else if (Date.now() < Batch.StartTime + 400)
             {
                 return true;
             }
