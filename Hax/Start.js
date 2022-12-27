@@ -3,7 +3,7 @@ import {colors} from "./Hax/UI.js";
 /** @param {NS} ns */
 export async function main(ns)
 {
-	ns.exec("/Hax/HacknetManager.js", "home");
+	//ns.exec("/Hax/HacknetManager.js", "home");
 	ns.exec("/Hax/Databasing.js", "home");
 	ns.exec("/Hax/Networking.js", "home");
 	ns.exec("/Hax/Targeting.js", "home");

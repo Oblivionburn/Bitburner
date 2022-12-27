@@ -34,11 +34,11 @@ async function GetTargets(ns)
 		{
 			let target = rooted_with_money[i];
 
-			let minHack = hackLevel / 10;
+			let minHack = Math.floor(hackLevel / 10);
 			let requiredHack = ns.getServerRequiredHackingLevel(target);
-			let maxHack = ns.getServerRequiredHackingLevel(target) * 2;
-			if (hackLevel >= maxHack &&
-				requiredHack >= minHack &&
+			let maxHack = Math.floor(hackLevel / 5);
+			if (requiredHack >= minHack &&
+				requiredHack <= maxHack &&
 				!targets.includes(target))
 			{
 				targets.push(target);
