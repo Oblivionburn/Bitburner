@@ -357,12 +357,12 @@ async function IsBatchRunning(newBatch)
         if (Batch.Target == newBatch.Target &&
             Batch.Host == newBatch.Host)
         {
-            if (Date.now() > Batch.StartTime + 400)
+            if (Date.now() >= Batch.EndTime)
             {
                 batches_running.splice(i, 1);
                 i--;
             }
-            else if (Date.now() <= Batch.StartTime + 400)
+            else if (Date.now() < Batch.EndTime)
             {
                 return true;
             }
