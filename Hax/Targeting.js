@@ -20,7 +20,7 @@ export async function main(ns)
 
 		hackLevel = ns.getHackingLevel();
 		minHack = Math.floor(hackLevel / 10);
-		maxHack = Math.floor(hackLevel / 5);
+		maxHack = Math.ceil(hackLevel / 5);
 
 		await GetTargets(ns);
         await DB.Insert(ns, {Name: "targets", List: targets});
@@ -31,6 +31,8 @@ export async function main(ns)
 
 async function GetTargets(ns)
 {
+	targets = [];
+	
 	if (rooted_with_money != null &&
 		rooted_with_money.length > 0)
 	{

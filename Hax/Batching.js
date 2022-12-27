@@ -88,10 +88,12 @@ async function Batching(ns, targets)
 /** @param {NS} ns */
 async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale)
 {
+    let growThresh = maxMoney * growThreshFactor;
+
     //Time diff between batches = 400ms
     let Hack = await HackOrder(ns, 0, target, maxMoney, scale);
     let hackSecurityIncrease = security + Hack.SecurityDiff;
-    let moneyStolen = (money * (Hack.PercentStolen * Hack.Threads)) / 100;
+    let moneyStolen = growThresh * scale;
 
     let WeakenOne = await WeakenOrder(ns, 0, target, hackSecurityIncrease, minSecurity, scale);
 
