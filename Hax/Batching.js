@@ -120,6 +120,7 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 
         let batch =
         {
+            Host: "",
             Target: target,
             StartTime: Date.now(),
             EndTime: endTime,
@@ -230,7 +231,9 @@ async function SendBatch(ns, batch)
         let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
         if (availableRam >= batch.Cost)
         {
-            let isBatchRunning = await IsBatchRunning(batch.Target);
+            batch.Host = host;
+
+            let isBatchRunning = await IsBatchRunning(batch);
             if (!isBatchRunning)
             {
                 let str = JSON.stringify(batch);
@@ -346,12 +349,13 @@ async function IsServerPrepped(ns, security, minSecurity, money, growThresh)
     return false;
 }
 
-async function IsBatchRunning(target)
+async function IsBatchRunning(newBatch)
 {
     for (let i = 0; i < batches_running.length; i++)
     {
         let Batch = batches_running[i];
-        if (Batch.Target == target)
+        if (Batch.Target == newBatch.Target &&
+            Batch.Host == newBatch.Host)
         {
             if (Date.now() > Batch.StartTime + 400)
             {
