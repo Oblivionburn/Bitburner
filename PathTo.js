@@ -12,6 +12,10 @@ export async function main(ns)
 {
 	let target = ns.args[0];
 
+	found = false;
+	servers = [];
+	ignore = [];
+	
 	ns.disableLog("ALL");
 	ns.tail(ns.getScriptName(), "home", target);
 	
@@ -44,23 +48,27 @@ function findPath(ns, serverName, target)
 	{
 		let server = scan_results[i];
 
-		if (ignore.includes(server))
+		if (found)
+		{
+			break;
+		}
+		else if (ignore.includes(server))
 		{
 			continue;
 		}
 		else if (server == target)
 		{
+			found = true;
 			servers.push(server);
-			return true;
 		}
 		else
 		{
 			servers.push(server);
 
-			found = findPath(ns, server, target);
+			findPath(ns, server, target);
 			if (found)
 			{
-				return true;
+				break;
 			}
 			else
 			{
@@ -68,6 +76,4 @@ function findPath(ns, serverName, target)
 			}
 		}
 	}
-
-	return false;
 }
