@@ -20,10 +20,12 @@ export async function main(ns)
 		rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
 
 		hackLevel = ns.getHackingLevel();
-		minHack = Math.floor(hackLevel / 10);
-		maxHack = Math.ceil(hackLevel / 5);
+		minHack = 1;
+		maxHack = Math.ceil(hackLevel / 10);
 
 		await GetTargets(ns);
+		targets.sort((a,b) => ns.getServerRequiredHackingLevel(b) - ns.getServerRequiredHackingLevel(a));
+
         await DB.Insert(ns, {Name: "targets", List: targets});
 		await Log(ns);
         await ns.sleep(1);
@@ -47,24 +49,7 @@ async function GetTargets(ns)
 				requiredHack <= maxHack &&
 				!targets.includes(target))
 			{
-				let push = true;
-				if (targets.length > 0)
-				{
-					let previous_target = targets[targets.length - 1];
-					if (previous_target != null)
-					{
-						let previous_requiredHack = ns.getServerRequiredHackingLevel(previous_target);
-						if (requiredHack <= previous_requiredHack)
-						{
-							push = false;
-						}
-					}
-				}
-
-				if (push)
-				{
-					targets.push(target);
-				}
+				targets.push(target);
 			}
 		}
 	}
