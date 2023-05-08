@@ -29,7 +29,12 @@ export async function main(ns)
 		
 		if (found)
 		{
-			ns.print(servers.join(" -> "));
+			let connections = "home;";
+			for (let i = 0; i < servers.length; i++)
+			{
+				connections += "connect " + servers[i] + ";";
+			}
+			ns.print(connections);
 		}
 		else
 		{
