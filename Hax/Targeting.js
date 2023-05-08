@@ -20,8 +20,8 @@ export async function main(ns)
 		rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
 
 		hackLevel = ns.getHackingLevel();
-		minHack = Math.floor(hackLevel / 20);
-		maxHack = Math.ceil(hackLevel / 10);
+		minHack = Math.floor(hackLevel / 10);
+		maxHack = Math.ceil(hackLevel / 5);
 
 		await GetTargets(ns);
         await DB.Insert(ns, {Name: "targets", List: targets});
