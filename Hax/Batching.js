@@ -35,50 +35,53 @@ async function Batching(ns, targets)
         let availableCount = await AvailableCount();
         if (availableCount > 0)
         {
-            let target = targets[0];
-
-            for (let scale = 1.0; scale > 0.01; scale -= 0.01)
+            for (let t = 0; t < targets.length; t++)
             {
-                let sent = false;
-                
-                let money = ns.getServerMoneyAvailable(target);
-                let maxMoney = ns.getServerMaxMoney(target);
-                let security = ns.getServerSecurityLevel(target);
-                let minSecurity = ns.getServerMinSecurityLevel(target);
-                let growThresh = maxMoney * growThreshFactor;
+                let target = targets[t];
 
-                let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
-                if (prepped)
+                for (let scale = 1.0; scale > 0.01; scale -= 0.01)
                 {
-                    let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
-                    if (Batch != null)
+                    let sent = false;
+                    
+                    let money = ns.getServerMoneyAvailable(target);
+                    let maxMoney = ns.getServerMaxMoney(target);
+                    let security = ns.getServerSecurityLevel(target);
+                    let minSecurity = ns.getServerMinSecurityLevel(target);
+                    let growThresh = maxMoney * growThreshFactor;
+
+                    let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
+                    if (prepped)
                     {
-                        sent = await SendBatch(ns, Batch);
-                    }
-                }
-                else
-                {
-                    if (security > minSecurity)
-                    {
-                        let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity, scale);
-                        if (Weaken.Threads > 0)
+                        let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
+                        if (Batch != null)
                         {
-                            sent = await SendWeaken(ns, Weaken);
+                            sent = await SendBatch(ns, Batch);
                         }
                     }
-                    else if (money < growThresh)
+                    else
                     {
-                        let Grow = await GrowOrder(ns, 0, target, money, maxMoney, scale);
-                        if (Grow.Threads > 0)
+                        if (security > minSecurity)
                         {
-                            sent = await SendGrow(ns, Grow);
+                            let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity, scale);
+                            if (Weaken.Threads > 0)
+                            {
+                                sent = await SendWeaken(ns, Weaken);
+                            }
+                        }
+                        else if (money < growThresh)
+                        {
+                            let Grow = await GrowOrder(ns, 0, target, money, maxMoney, scale);
+                            if (Grow.Threads > 0)
+                            {
+                                sent = await SendGrow(ns, Grow);
+                            }
                         }
                     }
-                }
 
-                if (sent)
-                {
-                    break;
+                    if (sent)
+                    {
+                        break;
+                    }
                 }
             }
         }
