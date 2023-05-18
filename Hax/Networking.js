@@ -62,6 +62,8 @@ async function Log(ns)
 
 async function RootServers(ns)
 {
+	rooted_servers = [];
+
 	if (rooted_servers.length < base_servers.length)
 	{
 		for (let i = 0; i < base_servers.length; i++)
@@ -115,6 +117,9 @@ async function DeepScan(ns, server)
 
 async function Scan_RootedServers(ns)
 {
+	rooted_with_money = [];
+	rooted_with_ram = [];
+
 	let count = rooted_servers.length;
 	if (count > 0)
 	{
@@ -143,6 +148,8 @@ async function Scan_RootedServers(ns)
 
 async function Scan_PurchasedServers(ns)
 {
+	purchased_servers = [];
+
 	let scan_results = ns.scan("home");
 	let scanCount = scan_results.length;
 	if (scanCount > 0)
@@ -162,6 +169,8 @@ async function Scan_PurchasedServers(ns)
 
 async function Scan_AvailableServers(ns)
 {
+	available_servers = [];
+
 	var total = rooted_with_ram.length + purchased_servers.length;
 	if (available_servers.length < total)
 	{
@@ -177,9 +186,12 @@ async function Scan_AvailableServers(ns)
 		for (let i = 0; i < purchased_servers.length; i++)
 		{
 			let server = purchased_servers[i];
-			if (!available_servers.includes(server))
+			if (ns.serverExists(server))
 			{
-				available_servers.push(server);
+				if (!available_servers.includes(server))
+				{
+					available_servers.push(server);
+				}
 			}
 		}
 

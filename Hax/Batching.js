@@ -22,7 +22,7 @@ export async function main(ns)
         targets = await DB.Select(ns, "targets");
 
         await Batching(ns, targets);
-        await ns.sleep(1);
+        await ns.sleep(3);
     }
 }
 
@@ -232,22 +232,24 @@ async function SendBatch(ns, batch)
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
-
-        let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-        if (availableRam >= batch.Cost)
+        if (ns.serverExists(host))
         {
-            batch.Host = host;
-
-            let isBatchRunning = await IsBatchRunning(batch);
-            if (!isBatchRunning)
+            let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+            if (availableRam >= batch.Cost)
             {
-                let str = JSON.stringify(batch);
-                ns.exec("/Hax/RunBatch.js", host, 1, str);
+                batch.Host = host;
 
-                batches_running.push(batch);
-                ns.print(`${colors["white"] + DTStamp() + colors["yellow"] + host + " started batch for " + batch.Target}`);
+                let isBatchRunning = await IsBatchRunning(batch);
+                if (!isBatchRunning)
+                {
+                    let str = JSON.stringify(batch);
+                    ns.exec("/Hax/RunBatch.js", host, 1, str);
 
-                return true;
+                    batches_running.push(batch);
+                    ns.print(`${colors["white"] + DTStamp() + colors["yellow"] + host + " started batch for " + batch.Target}`);
+
+                    return true;
+                }
             }
         }
     }
@@ -263,17 +265,19 @@ async function SendGrow(ns, grow)
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
-
-        let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-        if (availableRam >= grow.Cost)
+        if (ns.serverExists(host))
         {
-            let isGrowRunning = await IsGrowRunning(grow.Target);
-            if (!isGrowRunning)
+            let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+            if (availableRam >= grow.Cost)
             {
-                ns.exec(grow.Script, host, grow.Threads, grow.Target, grow.Delay);
-                grow_running.push(grow);
-                ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started growing " + grow.Target + " with " + grow.Threads + " threads"}`);
-                return true;
+                let isGrowRunning = await IsGrowRunning(grow.Target);
+                if (!isGrowRunning)
+                {
+                    ns.exec(grow.Script, host, grow.Threads, grow.Target, grow.Delay);
+                    grow_running.push(grow);
+                    ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started growing " + grow.Target + " with " + grow.Threads + " threads"}`);
+                    return true;
+                }
             }
         }
     }
@@ -288,17 +292,19 @@ async function SendWeaken(ns, weaken)
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
-
-        let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-        if (availableRam >= weaken.Cost)
+        if (ns.serverExists(host))
         {
-            let isWeakenRunning = await IsWeakenRunning(weaken.Target);
-            if (!isWeakenRunning)
+            let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+            if (availableRam >= weaken.Cost)
             {
-                ns.exec(weaken.Script, host, weaken.Threads, weaken.Target, weaken.Delay);
-                weaken_running.push(weaken);
-                ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started weakening " + weaken.Target + " with " + weaken.Threads + " threads"}`);
-                return true;
+                let isWeakenRunning = await IsWeakenRunning(weaken.Target);
+                if (!isWeakenRunning)
+                {
+                    ns.exec(weaken.Script, host, weaken.Threads, weaken.Target, weaken.Delay);
+                    weaken_running.push(weaken);
+                    ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started weakening " + weaken.Target + " with " + weaken.Threads + " threads"}`);
+                    return true;
+                }
             }
         }
     }
@@ -313,17 +319,19 @@ async function SendHack(ns, hack)
     for (let i = 0; i < availableCount; i++)
     {
         let host = available_servers[i];
-
-        let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-        if (availableRam >= hack.Cost)
+        if (ns.serverExists(host))
         {
-            let isHackRunning = await IsHackRunning(hack.Target);
-            if (!isHackRunning)
+            let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+            if (availableRam >= hack.Cost)
             {
-                ns.exec(hack.Script, host, hack.Threads, hack.Target, hack.Delay);
-                hack_running.push(hack);
-                ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started hacking " + hack.Target + " with " + hack.Threads + " threads"}`);
-                return true;
+                let isHackRunning = await IsHackRunning(hack.Target);
+                if (!isHackRunning)
+                {
+                    ns.exec(hack.Script, host, hack.Threads, hack.Target, hack.Delay);
+                    hack_running.push(hack);
+                    ns.print(`${colors["white"] + DTStamp() + colors["green"] + host + " started hacking " + hack.Target + " with " + hack.Threads + " threads"}`);
+                    return true;
+                }
             }
         }
     }

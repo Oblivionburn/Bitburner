@@ -25,11 +25,13 @@ async function DistributeScripts(ns)
         for (let i = 0; i < available_servers.length; i++)
         {
             let server = available_servers[i];
-
-            ns.scp("/Hax/Weaken.js", server, "home");
-            ns.scp("/Hax/Grow.js", server, "home");
-            ns.scp("/Hax/Hack.js", server, "home");
-            ns.scp("/Hax/RunBatch.js", server, "home");
+            if (ns.serverExists(server))
+            {
+                ns.scp("/Hax/Weaken.js", server, "home");
+                ns.scp("/Hax/Grow.js", server, "home");
+                ns.scp("/Hax/Hack.js", server, "home");
+                ns.scp("/Hax/RunBatch.js", server, "home");
+            }
         }
     }
 }

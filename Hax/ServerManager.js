@@ -30,13 +30,13 @@ export async function main(ns)
 		{
 			purchasedNum = purchased_servers.length;
 
-			UpgradeServers(ns);
-			BuyServer(ns);
+			await UpgradeServers(ns);
+			await BuyServer(ns);
 		}
 
         ns.clearLog();
         await Log(ns);
-        await ns.sleep(100);
+        await ns.sleep(1000);
     }
 }
 
@@ -56,7 +56,8 @@ async function BuyServer(ns)
 	if (money >= serverCost &&
 		purchasedNum < serverNumLimit)
 	{
-		ns.purchaseServer("PS-" + purchasedNum, 2);
+		let server_name = "PS-" + purchasedNum + "-v1";
+		ns.purchaseServer(server_name, 2);
 	}
 }
 
@@ -69,32 +70,42 @@ async function UpgradeServers(ns)
 	for (let i = 0; i < purchasedNum; i++)
 	{
 		money = ns.getServerMoneyAvailable("home");
+
 		let server_name = purchased_servers[i];
-		let serverRam = ns.getServerMaxRam(server_name);
-		let nextRam = serverRam * 2;
-		let upgradeCost = ns.getPurchasedServerCost(nextRam);
+		if (ns.serverExists(server_name))
+		{
+			let serverRam = ns.getServerMaxRam(server_name);
+			let nextRam = serverRam * 2;
+			let upgradeCost = ns.getPurchasedServerCost(nextRam);
 
-		if (upgradeCost < nextCost)
-		{
-			nextCost = upgradeCost;
-		}
+			let version_index = server_name.indexOf("v");
+			let server_subName = server_name.substring(0, version_index);
+			let version = server_name.substring(version_index + 1, server_name.length);
+			let new_serverName = server_subName + "v" + (Number(version) + 1);
 
-		if (serverRam < minPurchasedServerRam)
-		{
-			minPurchasedServerRam = serverRam;
-		}
-		if (serverRam > maxPurchasedServerRam)
-		{
-			maxPurchasedServerRam = serverRam;
-		}
+			if (upgradeCost < nextCost)
+			{
+				nextCost = upgradeCost;
+			}
 
-		if (serverRam < serverRamLimit &&
-			nextRam < serverRamLimit &&
-			money >= upgradeCost)
-		{
-			ns.killall(server_name);
-			ns.deleteServer(server_name);
-			ns.purchaseServer(server_name, nextRam);
+			if (serverRam < minPurchasedServerRam)
+			{
+				minPurchasedServerRam = serverRam;
+			}
+			
+			if (serverRam > maxPurchasedServerRam)
+			{
+				maxPurchasedServerRam = serverRam;
+			}
+
+			if (serverRam < serverRamLimit &&
+				nextRam < serverRamLimit &&
+				money >= upgradeCost)
+			{
+				ns.killall(server_name);
+				ns.deleteServer(server_name);
+				ns.purchaseServer(new_serverName, nextRam);
+			}
 		}
 	}
 	

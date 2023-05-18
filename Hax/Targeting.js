@@ -17,14 +17,20 @@ export async function main(ns)
     while (true)
     {
         rooted_with_money = await DB.Select(ns, "rooted_with_money");
-		rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
-
+		if (rooted_with_money != null)
+		{
+			rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
+		}
+		
 		hackLevel = ns.getHackingLevel();
 		minHack = 1;
 		maxHack = Math.ceil(hackLevel / 10);
 
 		await GetTargets(ns);
-		targets.sort((a,b) => ns.getServerRequiredHackingLevel(b) - ns.getServerRequiredHackingLevel(a));
+		if (targets.length > 1)
+		{
+			targets.sort((a,b) => ns.getServerRequiredHackingLevel(b) - ns.getServerRequiredHackingLevel(a));
+		}
 
         await DB.Insert(ns, {Name: "targets", List: targets});
 		await Log(ns);

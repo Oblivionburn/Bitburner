@@ -21,9 +21,12 @@ export async function main(ns)
 	for (let i = 0; i < purchased_servers.length; i++)
 	{
 		let server = purchased_servers[i];
-		for (let s = 0; s < scripts.length; s++)
+		if (ns.serverExists(server))
 		{
-			RemoveScript(ns, scripts[s], server);
+			for (let s = 0; s < scripts.length; s++)
+			{
+				RemoveScript(ns, scripts[s], server);
+			}
 		}
 	}
 
