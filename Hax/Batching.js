@@ -234,8 +234,12 @@ async function SendBatch(ns, batch)
         let host = available_servers[i];
         if (ns.serverExists(host))
         {
+            //Factor in cost of running the RunBatch.js itself
+            let runBatchScriptCost = await GetCost(ns, "/Hax/RunBatch.js", 1);
+            let totalCost = batch.Cost + runBatchScriptCost;
+
             let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-            if (availableRam >= batch.Cost)
+            if (availableRam >= totalCost)
             {
                 batch.Host = host;
 
@@ -243,12 +247,17 @@ async function SendBatch(ns, batch)
                 if (!isBatchRunning)
                 {
                     let str = JSON.stringify(batch);
-                    ns.exec("/Hax/RunBatch.js", host, 1, str);
-
-                    batches_running.push(batch);
-                    ns.print(`${colors["white"] + DTStamp() + colors["yellow"] + host + " started batch for " + batch.Target}`);
-
-                    return true;
+                    let pid = ns.exec("/Hax/RunBatch.js", host, 1, str);
+                    if (pid > 0)
+                    {
+                        batches_running.push(batch);
+                        ns.print(`${colors["white"] + DTStamp() + colors["yellow"] + host + " started batch for " + batch.Target}`);
+                        return true;
+                    }
+                    else
+                    {
+                        //ns.print(`${colors["white"] + DTStamp() + colors["red"] + host + " failed to start batch for " + batch.Target}`);
+                    }
                 }
             }
         }

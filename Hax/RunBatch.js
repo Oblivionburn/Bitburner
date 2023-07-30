@@ -9,18 +9,51 @@ export async function main(ns)
 
 	ns.clearLog();
 
+	ns.print("Starting batch...");
+	let error = false;
+
 	let orders = batch.Orders;
-	if (AvailableRam(ns, server) >= batch.Cost)
+	let availableRam = AvailableRam(ns, server);
+	if (availableRam >= batch.Cost)
 	{
-		for (let i = 0; i < orders.length; i++)
+		if (orders.length > 0)
 		{
-			let order = orders[i];
-			if (AvailableRam(ns, server) >= order.Cost)
+			for (let i = 0; i < orders.length; i++)
 			{
-				ns.exec(order.Script, server, order.Threads, order.Target, order.Delay);
-				ns.print("Ran '" + order.Script + "' script against " + order.Target + " with " + order.Threads + " threads and delay of " + order.Delay);
+				let order = orders[i];
+				if (availableRam >= order.Cost)
+				{
+					ns.exec(order.Script, server, order.Threads, order.Target, order.Delay);
+					ns.print("Ran '" + order.Script + "' script against " + order.Target + " with " + order.Threads + " threads and delay of " + order.Delay);
+				}
+				else
+				{
+					ns.print("Failed to run '" + order.Script + "' script against " + order.Target + " with " + order.Threads + " threads for " + order.Cost + " RAM");
+					error = true;
+				}
 			}
 		}
+		else
+		{
+			ns.print("Error: received batch with 0 orders!");
+			error = true;
+		}
+	}
+	else
+	{
+		ns.print(availableRam + " RAM not enough to run batch for " + batch.Cost + " RAM");
+		error = true;
+	}
+
+	if (error)
+	{
+		/*
+		while (true)
+		{
+				//Keep script alive to check logs
+				await ns.sleep(1000);
+		}
+		*/
 	}
 }
 

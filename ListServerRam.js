@@ -39,6 +39,7 @@ function deepScan(ns, serverName)
 
 		if (server != "home" &&
 			!servers.includes(server) &&
+			ns.serverExists(server) &&
 			ns.getServerMaxRam(server) > 0)
 		{
 			servers.push(server);
