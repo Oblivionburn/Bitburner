@@ -8,22 +8,24 @@ let serverNumLimit = 0;
 let nextCost = 0;
 let minPurchasedServerRam = 0;
 let maxPurchasedServerRam = 0;
+let serversAtMinRam = 0;
+let serversAtMaxRam = 0;
 let purchased_servers = [];
 let purchasedNum = 0;
 
 /** @param {NS} ns */
 export async function main(ns)
 {
-    ns.disableLog("ALL");
-    ns.tail(ns.getScriptName(), "home");
+	ns.disableLog("ALL");
+	ns.tail(ns.getScriptName(), "home");
 
 	serverNumLimit = ns.getPurchasedServerLimit();
-    serverCost = ns.getPurchasedServerCost(2);
+	serverCost = ns.getPurchasedServerCost(2);
 	serverRamLimit = ns.getPurchasedServerMaxRam();
 
-    while (true)
-    {
-		ns.resizeTail(440, 160);
+	while (true)
+	{
+		ns.resizeTail(440, 280);
 
 		purchased_servers = await DB.Select(ns, "purchased_servers");
 		if (purchased_servers != null)
@@ -34,18 +36,23 @@ export async function main(ns)
 			await BuyServer(ns);
 		}
 
-        ns.clearLog();
-        await Log(ns);
-        await ns.sleep(1000);
-    }
+		ns.clearLog();
+		await Log(ns);
+		await ns.sleep(1000);
+	}
 }
 
 async function Log(ns)
 {
-    ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + serverNumLimit}`);
+	ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + serverNumLimit}`);
 	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchasedNum}`);
+	ns.print("\n");
 	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
+	ns.print(`${colors["white"] + "Servers at Min Ram: " + colors["green"] + serversAtMinRam}`);
+	ns.print("\n");
 	ns.print(`${colors["white"] + "Max Purchased Server Ram: " + colors["green"] + maxPurchasedServerRam + " GB"}`);
+	ns.print(`${colors["white"] + "Servers at Max Ram: " + colors["green"] + serversAtMaxRam}`);
+	ns.print("\n");
 	ns.print(`${colors["white"] + "Buy/Upgrade Server Cost: " + colors["green"] + "$" + nextCost.toLocaleString()}`);
 }
 
@@ -66,6 +73,8 @@ async function UpgradeServers(ns)
 	nextCost = Number.MAX_SAFE_INTEGER;
 	minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 	maxPurchasedServerRam = 0;
+	serversAtMinRam = 0;
+	serversAtMaxRam = 0;
 
 	for (let i = 0; i < purchasedNum; i++)
 	{
@@ -92,15 +101,24 @@ async function UpgradeServers(ns)
 			{
 				minPurchasedServerRam = serverRam;
 			}
-			
+
 			if (serverRam > maxPurchasedServerRam)
 			{
 				maxPurchasedServerRam = serverRam;
 			}
+			
+			if (serverRam == minPurchasedServerRam)
+			{
+				serversAtMinRam++;
+			}
+			else if (serverRam == maxPurchasedServerRam)
+			{
+				serversAtMaxRam++;
+			}
 
 			if (serverRam < serverRamLimit &&
-				nextRam < serverRamLimit &&
-				money >= upgradeCost)
+					nextRam < serverRamLimit &&
+					money >= upgradeCost)
 			{
 				ns.killall(server_name);
 				ns.deleteServer(server_name);
