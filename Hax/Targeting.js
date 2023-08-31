@@ -16,7 +16,10 @@ export async function main(ns)
 
     while (true)
     {
+		ns.resizeTail(280, 160);
+				
         rooted_with_money = await DB.Select(ns, "rooted_with_money");
+
 		if (rooted_with_money != null)
 		{
 			rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
@@ -24,7 +27,7 @@ export async function main(ns)
 		
 		hackLevel = ns.getHackingLevel();
 		minHack = 1;
-		maxHack = Math.ceil(hackLevel / 10);
+		maxHack = Math.ceil(hackLevel / 5);
 
 		await GetTargets(ns);
 		if (targets.length > 1)
@@ -67,7 +70,6 @@ async function Log(ns)
 	ns.print(`${colors["white"] + "Min: " + minHack + ", Max: " + maxHack}`);
 	ns.print("\n");
 	ns.print(`${colors["yellow"] + "Targets:"}`);
-
 	for (let i = 0; i < targets.length; i++)
 	{
 		ns.print(`${colors["white"] + targets[i] + ": " + ns.getServerRequiredHackingLevel(targets[i])}`);

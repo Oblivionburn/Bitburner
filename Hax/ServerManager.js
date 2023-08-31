@@ -44,8 +44,12 @@ export async function main(ns)
 
 async function Log(ns)
 {
-	ns.print(`${colors["white"] + "Max Purchased Servers: " + colors["green"] + serverNumLimit}`);
-	ns.print(`${colors["white"] + "Purchased Servers: " + colors["green"] + purchasedNum}`);
+	ns.print(`${colors["white"] + "Purchased Servers (" + colors["green"] + purchasedNum + "/" + serverNumLimit + colors["white"] + "):"}`);
+	for (let i = 0; i < purchasedNum; i++)
+	{
+		let server_name = purchased_servers[i];
+		ns.print(`${colors["white"] + server_name}`);
+	}
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
 	ns.print(`${colors["white"] + "Servers at Min Ram: " + colors["green"] + serversAtMinRam}`);
@@ -73,8 +77,6 @@ async function UpgradeServers(ns)
 	nextCost = Number.MAX_SAFE_INTEGER;
 	minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 	maxPurchasedServerRam = 0;
-	serversAtMinRam = 0;
-	serversAtMaxRam = 0;
 
 	for (let i = 0; i < purchasedNum; i++)
 	{
@@ -106,7 +108,29 @@ async function UpgradeServers(ns)
 			{
 				maxPurchasedServerRam = serverRam;
 			}
-			
+
+			if (serverRam < serverRamLimit &&
+				nextRam < serverRamLimit &&
+				money >= upgradeCost)
+			{
+				ns.killall(server_name);
+				ns.deleteServer(server_name);
+				ns.purchaseServer(new_serverName, nextRam);
+				purchased_servers[i] = new_serverName;
+			}
+		}
+	}
+
+	serversAtMinRam = 0;
+	serversAtMaxRam = 0;
+	
+	for (let i = 0; i < purchasedNum; i++)
+	{
+		let server_name = purchased_servers[i];
+		if (ns.serverExists(server_name))
+		{
+			let serverRam = ns.getServerMaxRam(server_name);
+
 			if (serverRam == minPurchasedServerRam)
 			{
 				serversAtMinRam++;
@@ -114,15 +138,6 @@ async function UpgradeServers(ns)
 			else if (serverRam == maxPurchasedServerRam)
 			{
 				serversAtMaxRam++;
-			}
-
-			if (serverRam < serverRamLimit &&
-					nextRam < serverRamLimit &&
-					money >= upgradeCost)
-			{
-				ns.killall(server_name);
-				ns.deleteServer(server_name);
-				ns.purchaseServer(new_serverName, nextRam);
 			}
 		}
 	}
