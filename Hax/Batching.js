@@ -63,6 +63,9 @@ async function Batching(ns, targets)
 					let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
 					if (prepped)
 					{
+						StopWeaken(target);
+						StopGrow(target);
+
 						let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
 						if (Batch != null)
 						{
@@ -81,6 +84,8 @@ async function Batching(ns, targets)
 						}
 						else if (money < growThresh)
 						{
+							StopWeaken(target);
+
 							let Grow = await GrowOrder(ns, 0, target, money, maxMoney, scale);
 							if (Grow.Threads > 0)
 							{
@@ -371,12 +376,10 @@ async function AvailableCount()
 
 async function IsServerPrepped(ns, security, minSecurity, money, growThresh)
 {
-	if (security <= minSecurity)
+	if (security <= minSecurity &&
+			money >= growThresh)
 	{
-		if (money >= growThresh)
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;
@@ -509,18 +512,41 @@ async function Maintenance()
 	}
 }
 
+async function StopWeaken(target)
+{
+	let count = weaken_running.length;
+	for (let i = 0; i < count; i++)
+	{
+		weaken_running.splice(i, 1);
+		count--;
+		i--;
+	}
+}
+
+async function StopGrow(target)
+{
+	let count = grow_running.length;
+	for (let i = 0; i < count; i++)
+	{
+		grow_running.splice(i, 1);
+		count--;
+		i--;
+	}
+}
+
 async function Log(ns)
 {
-	if (batches_running.length > 0)
+	/*
+	if (weaken_running.length > 0)
 	{
-		ns.print(`${colors["yellow"] + "Batches running:"}`);
+		ns.print(`${colors["yellow"] + "Weakens running:"}`);
 
-		let count = batches_running.length;
+		let count = weaken_running.length;
 		for (let i = 0; i < count; i++)
 		{
-			let batch = batches_running[i];
+			let order = weaken_running[i];
 
-			let endTime = new Date(batch.EndTime);
+			let endTime = new Date(order.EndTime);
 			let seconds = (endTime - Date.now()) / 1000;
 			if (Date.now() >= endTime)
 			{
@@ -530,20 +556,56 @@ async function Log(ns)
 			if (seconds == 0)
 			{
 				ns.print(`${colors["red"] + i + ") " + 
-					"Host: " + batch.Host + ", " + 
-					"Target: " + batch.Target + ", " + 
-					"Cost: " + batch.Cost + " GB, " + 
+					"Host: " + order.Host + ", " + 
+					"Target: " + order.Target + ", " + 
+					"Cost: " + order.Cost + " GB, " + 
 					"End Time: " + seconds}`);
 			}
 			else
 			{
 				ns.print(`${colors["yellow"] + i + ") " + 
-					colors["white"] + "Host: " + colors["green"] + batch.Host + ", " + 
-					colors["white"] + "Target: " + colors["green"] + batch.Target + ", " + 
-					colors["white"] + "Cost: " + colors["green"] + batch.Cost + " GB, " + 
+					colors["white"] + "Host: " + colors["green"] + order.Host + ", " + 
+					colors["white"] + "Target: " + colors["green"] + order.Target + ", " + 
+					colors["white"] + "Cost: " + colors["green"] + order.Cost + " GB, " + 
 					colors["white"] + "End Time: " + colors["green"] + seconds}`);
 			}
-			
+		}
+
+		ns.print("\n");
+	}
+	*/
+	if (batches_running.length > 0)
+	{
+		ns.print(`${colors["yellow"] + "Batches running:"}`);
+
+		let count = batches_running.length;
+		for (let i = 0; i < count; i++)
+		{
+			let order = batches_running[i];
+
+			let endTime = new Date(order.EndTime);
+			let seconds = (endTime - Date.now()) / 1000;
+			if (Date.now() >= endTime)
+			{
+				seconds = 0;
+			}
+
+			if (seconds == 0)
+			{
+				ns.print(`${colors["red"] + i + ") " + 
+					"Host: " + order.Host + ", " + 
+					"Target: " + order.Target + ", " + 
+					"Cost: " + order.Cost + " GB, " + 
+					"End Time: " + seconds}`);
+			}
+			else
+			{
+				ns.print(`${colors["yellow"] + i + ") " + 
+					colors["white"] + "Host: " + colors["green"] + order.Host + ", " + 
+					colors["white"] + "Target: " + colors["green"] + order.Target + ", " + 
+					colors["white"] + "Cost: " + colors["green"] + order.Cost + " GB, " + 
+					colors["white"] + "End Time: " + colors["green"] + seconds}`);
+			}
 		}
 	}
 }
