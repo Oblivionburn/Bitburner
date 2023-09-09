@@ -15,15 +15,19 @@ let available_servers = [];
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-    ns.tail(ns.getScriptName(), "home");
+	ns.tail(ns.getScriptName(), "home");
+
+	base_servers = [];
+	base_with_money = [];
+	base_with_ram = [];
 	
 	await DeepScan(ns, "home");
 	await DB.Insert(ns, {Name: "base_servers", List: base_servers});
 	await DB.Insert(ns, {Name: "base_with_money", List: base_with_money});
 	await DB.Insert(ns, {Name: "base_with_ram", List: base_with_ram});
 
-    while (true)
-    {
+	while (true)
+	{
 		ns.resizeTail(320, 320);
 		
 		await Scan_PurchasedServers(ns);
@@ -41,7 +45,7 @@ export async function main(ns)
 		await Log(ns);
 		
 		await ns.sleep(1000);
-    }
+	}
 }
 
 async function Log(ns)
