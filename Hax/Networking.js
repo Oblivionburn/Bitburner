@@ -17,19 +17,19 @@ export async function main(ns)
 	ns.disableLog("ALL");
 	ns.tail(ns.getScriptName(), "home");
 
-	base_servers = [];
-	base_with_money = [];
-	base_with_ram = [];
-	
-	await DeepScan(ns, "home");
-	await DB.Insert(ns, {Name: "base_servers", List: base_servers});
-	await DB.Insert(ns, {Name: "base_with_money", List: base_with_money});
-	await DB.Insert(ns, {Name: "base_with_ram", List: base_with_ram});
-
 	while (true)
 	{
 		ns.resizeTail(320, 320);
 		
+		base_servers = [];
+		base_with_money = [];
+		base_with_ram = [];
+		
+		await DeepScan(ns, "home");
+		await DB.Insert(ns, {Name: "base_servers", List: base_servers});
+		await DB.Insert(ns, {Name: "base_with_money", List: base_with_money});
+		await DB.Insert(ns, {Name: "base_with_ram", List: base_with_ram});
+
 		await Scan_PurchasedServers(ns);
 		await DB.Insert(ns, {Name: "purchased_servers", List: purchased_servers});
 
