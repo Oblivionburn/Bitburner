@@ -7,25 +7,31 @@ export async function main(ns)
 	let scripts = ["/Hax/Grow.js", "/Hax/Hack.js", "/Hax/Weaken.js", "/Hax/RunBatch.js"];
 
 	let base_servers = await DB.Select(ns, "base_servers");
-	for (let i = 0; i < base_servers.length; i++)
+	if (base_servers != null)
 	{
-		let server = base_servers[i];
-
-		for (let s = 0; s < scripts.length; s++)
+		for (let i = 0; i < base_servers.length; i++)
 		{
-			RemoveScript(ns, scripts[s], server);
+			let server = base_servers[i];
+
+			for (let s = 0; s < scripts.length; s++)
+			{
+				RemoveScript(ns, scripts[s], server);
+			}
 		}
 	}
 
 	let purchased_servers = await DB.Select(ns, "purchased_servers");
-	for (let i = 0; i < purchased_servers.length; i++)
+	if (purchased_servers != null)
 	{
-		let server = purchased_servers[i];
-		if (ns.serverExists(server))
+		for (let i = 0; i < purchased_servers.length; i++)
 		{
-			for (let s = 0; s < scripts.length; s++)
+			let server = purchased_servers[i];
+			if (ns.serverExists(server))
 			{
-				RemoveScript(ns, scripts[s], server);
+				for (let s = 0; s < scripts.length; s++)
+				{
+					RemoveScript(ns, scripts[s], server);
+				}
 			}
 		}
 	}

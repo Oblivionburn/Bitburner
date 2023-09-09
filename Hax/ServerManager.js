@@ -44,12 +44,16 @@ export async function main(ns)
 
 async function Log(ns)
 {
-	ns.print(`${colors["white"] + "Purchased Servers (" + colors["green"] + purchasedNum + "/" + serverNumLimit + colors["white"] + "):"}`);
-	for (let i = 0; i < purchasedNum; i++)
+	if (purchasedNum > 0)
 	{
-		let server_name = purchased_servers[i];
-		ns.print(`${colors["white"] + server_name}`);
+		ns.print(`${colors["white"] + "Purchased Servers (" + colors["green"] + purchasedNum + "/" + serverNumLimit + colors["white"] + "):"}`);
+		for (let i = 0; i < purchasedNum; i++)
+		{
+			let server_name = purchased_servers[i];
+			ns.print(`${colors["white"] + server_name}`);
+		}
 	}
+	
 	ns.print("\n");
 	ns.print(`${colors["white"] + "Min Purchased Server Ram: " + colors["green"] + minPurchasedServerRam + " GB"}`);
 	ns.print(`${colors["white"] + "Servers at Min Ram: " + colors["green"] + serversAtMinRam}`);
@@ -65,7 +69,7 @@ async function BuyServer(ns)
 	money = ns.getServerMoneyAvailable("home");
 
 	if (money >= serverCost &&
-		purchasedNum < serverNumLimit)
+			purchasedNum < serverNumLimit)
 	{
 		let server_name = "PS-" + purchasedNum + "-v1";
 		ns.purchaseServer(server_name, 2);
@@ -110,8 +114,8 @@ async function UpgradeServers(ns)
 			}
 
 			if (serverRam < serverRamLimit &&
-				nextRam < serverRamLimit &&
-				money >= upgradeCost)
+					nextRam < serverRamLimit &&
+					money >= upgradeCost)
 			{
 				ns.killall(server_name);
 				ns.deleteServer(server_name);
