@@ -22,7 +22,7 @@ export async function main(ns)
 
 	while (true)
 	{
-		ns.resizeTail(880, 320);
+		ns.resizeTail(260, 140);
 		available_servers = await DB.Select(ns, "available_servers");
 		targets = await DB.Select(ns, "targets");
 
@@ -536,76 +536,8 @@ async function StopGrow(target)
 
 async function Log(ns)
 {
-	/*
-	if (weaken_running.length > 0)
-	{
-		ns.print(`${colors["yellow"] + "Weakens running:"}`);
-
-		let count = weaken_running.length;
-		for (let i = 0; i < count; i++)
-		{
-			let order = weaken_running[i];
-
-			let endTime = new Date(order.EndTime);
-			let seconds = (endTime - Date.now()) / 1000;
-			if (Date.now() >= endTime)
-			{
-				seconds = 0;
-			}
-
-			if (seconds == 0)
-			{
-				ns.print(`${colors["red"] + i + ") " + 
-					"Host: " + order.Host + ", " + 
-					"Target: " + order.Target + ", " + 
-					"Cost: " + order.Cost + " GB, " + 
-					"End Time: " + seconds}`);
-			}
-			else
-			{
-				ns.print(`${colors["yellow"] + i + ") " + 
-					colors["white"] + "Host: " + colors["green"] + order.Host + ", " + 
-					colors["white"] + "Target: " + colors["green"] + order.Target + ", " + 
-					colors["white"] + "Cost: " + colors["green"] + order.Cost + " GB, " + 
-					colors["white"] + "End Time: " + colors["green"] + seconds}`);
-			}
-		}
-
-		ns.print("\n");
-	}
-	*/
-	if (batches_running.length > 0)
-	{
-		ns.print(`${colors["yellow"] + "Batches running:"}`);
-
-		let count = batches_running.length;
-		for (let i = 0; i < count; i++)
-		{
-			let order = batches_running[i];
-
-			let endTime = new Date(order.EndTime);
-			let seconds = (endTime - Date.now()) / 1000;
-			if (Date.now() >= endTime)
-			{
-				seconds = 0;
-			}
-
-			if (seconds == 0)
-			{
-				ns.print(`${colors["red"] + i + ") " + 
-					"Host: " + order.Host + ", " + 
-					"Target: " + order.Target + ", " + 
-					"Cost: " + order.Cost + " GB, " + 
-					"End Time: " + seconds}`);
-			}
-			else
-			{
-				ns.print(`${colors["yellow"] + i + ") " + 
-					colors["white"] + "Host: " + colors["green"] + order.Host + ", " + 
-					colors["white"] + "Target: " + colors["green"] + order.Target + ", " + 
-					colors["white"] + "Cost: " + colors["green"] + order.Cost + " GB, " + 
-					colors["white"] + "End Time: " + colors["green"] + seconds}`);
-			}
-		}
-	}
+	ns.print(`${colors["yellow"] + "Batches running:" + batches_running.length}`);
+	ns.print(`${colors["yellow"] + "Weakens running:" + weaken_running.length}`);
+	ns.print(`${colors["yellow"] + "Grows running:" + grow_running.length}`);
+	ns.print(`${colors["yellow"] + "Hacks running:" + hack_running.length}`);
 }
