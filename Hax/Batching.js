@@ -463,50 +463,42 @@ async function Maintenance()
 {
 	let now = Date.now();
 
-	let count = batches_running.length;
-	for (let i = 0; i < count; i++)
+	for (let i = 0; i < batches_running.length; i++)
 	{
-		let order = batches_running[i];
-		if (now >= order.EndTime)
+		let batch = batches_running[i];
+		if (now >= batch.EndTime)
 		{
 			batches_running.splice(i, 1);
-			count--;
 			i--;
 		}
 	}
 
-	count = grow_running.length;
-	for (let i = 0; i < count; i++)
+	for (let i = 0; i < grow_running.length; i++)
 	{
-		let order = grow_running[i];
-		if (now >= order.EndTime)
+		let grow = grow_running[i];
+		if (now >= grow.EndTime)
 		{
 			grow_running.splice(i, 1);
-			count--;
 			i--;
 		}
 	}
 
-	count = weaken_running.length;
-	for (let i = 0; i < count; i++)
+	for (let i = 0; i < weaken_running.length; i++)
 	{
-		let order = weaken_running[i];
-		if (now >= order.EndTime)
+		let weaken = weaken_running[i];
+		if (now >= weaken.EndTime)
 		{
 			weaken_running.splice(i, 1);
-			count--;
 			i--;
 		}
 	}
 
-	count = hack_running.length;
-	for (let i = 0; i < count; i++)
+	for (let i = 0; i < hack_running.length; i++)
 	{
-		let order = hack_running[i];
-		if (now >= order.EndTime)
+		let hack = hack_running[i];
+		if (now >= hack.EndTime)
 		{
 			hack_running.splice(i, 1);
-			count--;
 			i--;
 		}
 	}
@@ -514,23 +506,25 @@ async function Maintenance()
 
 async function StopWeaken(target)
 {
-	let count = weaken_running.length;
-	for (let i = 0; i < count; i++)
+	for (let i = 0; i < weaken_running.length; i++)
 	{
-		weaken_running.splice(i, 1);
-		count--;
-		i--;
+		if (weaken_running[i].Target == target)
+		{
+			weaken_running.splice(i, 1);
+			i--;
+		}
 	}
 }
 
 async function StopGrow(target)
 {
-	let count = grow_running.length;
-	for (let i = 0; i < count; i++)
+	for (let i = 0; i < grow_running.length; i++)
 	{
-		grow_running.splice(i, 1);
-		count--;
-		i--;
+		if (grow_running[i].Target == target)
+		{
+			grow_running.splice(i, 1);
+			i--;
+		}
 	}
 }
 
