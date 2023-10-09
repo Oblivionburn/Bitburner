@@ -51,7 +51,7 @@ async function Batching(ns, targets)
 
 				let sent = false;
 
-				for (let scale = 1.0; scale > 0.001; scale -= 0.001)
+				for (let scale = 1.0; scale > 0; scale -= 0.01)
 				{
 					let money = ns.getServerMoneyAvailable(target);
 					let maxMoney = ns.getServerMaxMoney(target);
