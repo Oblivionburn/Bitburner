@@ -15,7 +15,7 @@ export async function main(ns)
 			let table = `<table border=1 style="width: 100%; height: 100%">`;
 			let header = `
 				<thead>
-					<tr>
+					<tr style="color:yellow;">
 						<th>Target Index</th>
 						<th>Server</th>
 						<th>Security</th>
@@ -35,21 +35,43 @@ export async function main(ns)
 				{
 					let server = targets[i];
 
+					let requiredHack = ns.getServerRequiredHackingLevel(server);
+
 					let securityLevel = ns.getServerSecurityLevel(server);
 					let minSecurityLevel = ns.getServerMinSecurityLevel(server);
+
+					let securityColor = "green";
+					if (securityLevel > minSecurityLevel * 2)
+					{
+						securityColor = "red";
+					}
+					else if (securityLevel > minSecurityLevel)
+					{
+						securityColor = "yellow";
+					}
+
 					let availableMoney = ns.getServerMoneyAvailable(server);
 					let maxMoney = ns.getServerMaxMoney(server);
-					let requiredHack = ns.getServerRequiredHackingLevel(server);
+
+					let moneyColor = "green";
+					if (availableMoney < maxMoney / 10)
+					{
+						moneyColor = "red";
+					}
+					else if (availableMoney < maxMoney)
+					{
+						moneyColor = "yellow";
+					}
 
 					body += `
 						<tr>
-							<td>${i}</td>
-							<td>${server}</td>
-							<td>${securityLevel.toFixed(5)}</td>
-							<td>${minSecurityLevel.toFixed(5)}</td>
-							<td>$${availableMoney.toLocaleString()}</td>
-							<td>$${maxMoney.toLocaleString()}</td>
-							<td>${requiredHack}</td>
+							<td style="color:white;">${i}</td>
+							<td style="color:white;">${server}</td>
+							<td style="color:${securityColor};">${securityLevel.toFixed(5)}</td>
+							<td style="color:white;">${minSecurityLevel.toFixed(5)}</td>
+							<td style="color:${moneyColor};">$${availableMoney.toLocaleString()}</td>
+							<td style="color:white;">$${maxMoney.toLocaleString()}</td>
+							<td style="color:white;">${requiredHack}</td>
 						</tr>`;
 				}
 			}
