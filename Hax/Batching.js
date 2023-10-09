@@ -45,14 +45,13 @@ async function Batching(ns, targets)
 		let availableCount = await AvailableCount();
 		if (availableCount > 0)
 		{
-			let count = targets.length;
-			for (let t = 0; t < count; t++)
+			for (let t = 0; t < targets.length; t++)
 			{
 				let target = targets[t];
 
 				let sent = false;
 
-				for (let scale = 1.0; scale > 0.01; scale -= 0.01)
+				for (let scale = 1.0; scale > 0.001; scale -= 0.001)
 				{
 					let money = ns.getServerMoneyAvailable(target);
 					let maxMoney = ns.getServerMaxMoney(target);
@@ -530,8 +529,8 @@ async function StopGrow(target)
 
 async function Log(ns)
 {
-	ns.print(`${colors["yellow"] + "Batches running:" + batches_running.length}`);
-	ns.print(`${colors["yellow"] + "Weakens running:" + weaken_running.length}`);
-	ns.print(`${colors["yellow"] + "Grows running:" + grow_running.length}`);
-	ns.print(`${colors["yellow"] + "Hacks running:" + hack_running.length}`);
+	ns.print(`${colors["white"] + "Batches running:" + colors["green"] + batches_running.length}`);
+	ns.print(`${colors["white"] + "Weakens running:" + colors["green"] + weaken_running.length}`);
+	ns.print(`${colors["white"] + "Grows running:" + colors["green"] + grow_running.length}`);
+	ns.print(`${colors["white"] + "Hacks running:" + colors["green"] + hack_running.length}`);
 }
