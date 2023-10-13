@@ -11,14 +11,14 @@ let maxHack = 0;
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-    ns.tail(ns.getScriptName(), "home");
+	//ns.tail(ns.getScriptName(), "home");
 	ns.clearLog();
 
-    while (true)
-    {
+	while (true)
+	{
 		ns.resizeTail(280, 160);
-				
-        rooted_with_money = await DB.Select(ns, "rooted_with_money");
+		
+		rooted_with_money = await DB.Select(ns, "rooted_with_money");
 
 		if (rooted_with_money != null)
 		{
@@ -35,10 +35,10 @@ export async function main(ns)
 			targets.sort((a,b) => ns.getServerRequiredHackingLevel(b) - ns.getServerRequiredHackingLevel(a));
 		}
 
-        await DB.Insert(ns, {Name: "targets", List: targets});
+		await DB.Insert(ns, {Name: "targets", List: targets});
 		await Log(ns);
-        await ns.sleep(1);
-    }
+		await ns.sleep(1);
+	}
 }
 
 async function GetTargets(ns)

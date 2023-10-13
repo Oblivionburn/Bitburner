@@ -6,7 +6,6 @@ let targets = [];
 let batches_running = [];
 let grow_running = [];
 let weaken_running = [];
-let hack_running = [];
 let growThreshFactor = 0.1;
 
 /** @param {NS} ns */
@@ -18,7 +17,6 @@ export async function main(ns)
 	batches_running = [];
 	grow_running = [];
 	weaken_running = [];
-	hack_running = [];
 
 	while (true)
 	{
@@ -51,7 +49,7 @@ async function Batching(ns, targets)
 
 				let sent = false;
 
-				for (let scale = 1.0; scale > 0; scale -= 0.01)
+				for (let scale = 1.0; scale > 0; scale -= 0.005)
 				{
 					let money = ns.getServerMoneyAvailable(target);
 					let maxMoney = ns.getServerMaxMoney(target);
@@ -335,34 +333,6 @@ async function SendWeaken(ns, weaken)
 	return false;
 }
 
-/** @param {NS} ns */
-async function SendHack(ns, hack)
-{
-	let availableCount = await AvailableCount();
-	for (let i = 0; i < availableCount; i++)
-	{
-		let host = available_servers[i];
-		if (ns.serverExists(host))
-		{
-			let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-			if (availableRam >= hack.Cost)
-			{
-				hack.Host = host;
-
-				let isHackRunning = await IsHackRunning(hack);
-				if (!isHackRunning)
-				{
-					ns.exec(hack.Script, host, hack.Threads, hack.Target, hack.Delay);
-					hack_running.push(hack);
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
 async function AvailableCount()
 {
 	if (available_servers != null)
@@ -435,23 +405,6 @@ async function IsWeakenRunning(newWeaken)
 	return false;
 }
 
-async function IsHackRunning(newHack)
-{
-	let count = hack_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let hack = hack_running[i];
-		if (hack.Target == newHack.Target &&
-				hack.Host == newHack.Host &&
-				Date.now() < hack.EndTime)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 /** @param {NS} ns */
 async function GetCost(ns, script, threads)
 {
@@ -491,16 +444,6 @@ async function Maintenance()
 			i--;
 		}
 	}
-
-	for (let i = 0; i < hack_running.length; i++)
-	{
-		let hack = hack_running[i];
-		if (now >= hack.EndTime)
-		{
-			hack_running.splice(i, 1);
-			i--;
-		}
-	}
 }
 
 async function StopWeaken(target)
@@ -532,5 +475,4 @@ async function Log(ns)
 	ns.print(`${colors["white"] + "Batches running:" + colors["green"] + batches_running.length}`);
 	ns.print(`${colors["white"] + "Weakens running:" + colors["green"] + weaken_running.length}`);
 	ns.print(`${colors["white"] + "Grows running:" + colors["green"] + grow_running.length}`);
-	ns.print(`${colors["white"] + "Hacks running:" + colors["green"] + hack_running.length}`);
 }

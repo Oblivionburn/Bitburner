@@ -15,7 +15,7 @@ let available_servers = [];
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail(ns.getScriptName(), "home");
+	//ns.tail(ns.getScriptName(), "home");
 
 	while (true)
 	{
