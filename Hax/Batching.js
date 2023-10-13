@@ -12,7 +12,7 @@ let growThreshFactor = 0.1;
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail(ns.getScriptName(), "home");
+	//ns.tail(ns.getScriptName(), "home");
 
 	batches_running = [];
 	grow_running = [];
@@ -25,6 +25,11 @@ export async function main(ns)
 		targets = await DB.Select(ns, "targets");
 
 		await Batching(ns, targets);
+
+		await DB.Insert(ns, {Name: "batches_running", List: batches_running});
+		await DB.Insert(ns, {Name: "grow_running", List: grow_running});
+		await DB.Insert(ns, {Name: "weaken_running", List: weaken_running});
+
 		await Maintenance();
 
 		ns.clearLog();
