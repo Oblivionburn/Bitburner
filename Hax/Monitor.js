@@ -15,16 +15,16 @@ export async function main(ns)
 			let table = `<table border=1 style="width: 100%; height: 100%">`;
 			let header = `
 				<thead>
-					<tr style="color:yellow;">
+					<tr style="color:DarkGray;">
 						<th>Target Index</th>
+						<th>Batching</th>
 						<th>Server</th>
+						<th>Hack Level</th>
 						<th>Security</th>
 						<th>Min Security</th>
+						<th>Weakening</th>
 						<th>Money</th>
 						<th>Max Money</th>
-						<th>Hack Level</th>
-						<th>Batching</th>
-						<th>Weakening</th>
 						<th>Growing</th>
 					</tr>
 				</thead>`;
@@ -66,7 +66,7 @@ export async function main(ns)
 						moneyColor = "Yellow";
 					}
 
-					let batch_color = "DarkGray";
+					let batch_color = "Black";
 					let batches_running = 0;
 					let batch_list = await DB.Select(ns, "batches_running");
 					for (let b = 0; b < batch_list.length; b++)
@@ -83,7 +83,7 @@ export async function main(ns)
 						batch_color = "LimeGreen";
 					}
 
-					let weaken_color = "DarkGray";
+					let weaken_color = "Black";
 					let weakens_running = 0;
 					let weaken_list = await DB.Select(ns, "weaken_running");
 					for (let w = 0; w < weaken_list.length; w++)
@@ -100,7 +100,7 @@ export async function main(ns)
 						weaken_color = "LimeGreen";
 					}
 
-					let grow_color = "DarkGray";
+					let grow_color = "Black";
 					let grows_running = 0;
 					let grow_list = await DB.Select(ns, "grow_running");
 					for (let g = 0; g < grow_list.length; g++)
@@ -119,15 +119,15 @@ export async function main(ns)
 
 					body += `
 						<tr>
-							<td style="color:White;">${i}</td>
+							<td style="color:DarkGray;">${i}</td>
+							<td style="color:${batch_color};">${batches_running}</td>
 							<td style="color:White;">${server}</td>
+							<td style="color:White;">${requiredHack}</td>
 							<td style="color:${securityColor};">${securityLevel.toFixed(5)}</td>
 							<td style="color:White;">${minSecurityLevel.toFixed(5)}</td>
+							<td style="color:${weaken_color};">${weakens_running}</td>
 							<td style="color:${moneyColor};">$${availableMoney.toLocaleString()}</td>
 							<td style="color:White;">$${maxMoney.toLocaleString()}</td>
-							<td style="color:White;">${requiredHack}</td>
-							<td style="color:${batch_color};">${batches_running}</td>
-							<td style="color:${weaken_color};">${weakens_running}</td>
 							<td style="color:${grow_color};">${grows_running}</td>
 						</tr>`;
 				}
