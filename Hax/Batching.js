@@ -62,7 +62,7 @@ async function Batching(ns, targets)
 					let minSecurity = ns.getServerMinSecurityLevel(target);
 					let growThresh = maxMoney * growThreshFactor;
 
-					let prepped = await IsServerPrepped(ns, security, minSecurity, money, growThresh);
+					let prepped = await IsServerPrepped(security, minSecurity, money, growThresh);
 					if (prepped)
 					{
 						StopWeaken(target);
@@ -78,11 +78,7 @@ async function Batching(ns, targets)
 					{
 						if (security > minSecurity)
 						{
-							let Weaken = await WeakenOrder(ns, 0, target, security, minSecurity, scale);
-							if (Weaken.Threads > 0)
-							{
-								sent = await SendWeaken(ns, Weaken);
-							}
+							sent = await WeakenTarget(ns, target, security, minSecurity);
 						}
 						else if (money < growThresh)
 						{
@@ -217,6 +213,29 @@ async function WeakenOrder(ns, delay, target, security, minSecurity, scale)
 }
 
 /** @param {NS} ns */
+async function CreateWeakenOrder(ns, delay, target, threads)
+{
+	let script = "/Hax/Weaken.js";
+	let time = ns.getWeakenTime(target);
+	let cost = await GetCost(ns, script, threads);
+
+	let order =
+	{
+		Host: "",
+		Target: target,
+		Delay: delay,
+		StartTime: Date.now(),
+		EndTime: Date.now() + time,
+		Time: time,
+		Cost: cost,
+		Script: script,
+		Threads: threads
+	}
+
+	return order;
+}
+
+/** @param {NS} ns */
 async function HackOrder(ns, delay, target, maxMoney, scale)
 {
 	let growThresh = maxMoney * growThreshFactor;
@@ -311,31 +330,58 @@ async function SendGrow(ns, grow)
 }
 
 /** @param {NS} ns */
-async function SendWeaken(ns, weaken)
+async function WeakenTarget(ns, target, security, minSecurity)
 {
-	let availableCount = await AvailableCount();
-	for (let i = 0; i < availableCount; i++)
-	{
-		let host = available_servers[i];
-		if (ns.serverExists(host))
-		{
-			let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-			if (availableRam >= weaken.Cost)
-			{
-				weaken.Host = host;
+	let threadsRequired = await WeakenThreadsRequired(ns, security, minSecurity);
 
-				let isWeakenRunning = await IsWeakenRunning(weaken);
-				if (!isWeakenRunning)
+	let weakenHandled = await IsWeakenHandled(ns, target, threadsRequired);
+	if (weakenHandled)
+	{
+		return true;
+	}
+
+	for (let t = threadsRequired; t > 0; t--)
+	{
+		let cost = await GetCost(ns, "/Hax/Weaken.js", t);
+
+		let availableCount = await AvailableCount();
+		for (let i = 0; i < availableCount; i++)
+		{
+			let host = available_servers[i];
+			if (ns.serverExists(host))
+			{
+				let availableRam = await AvailableRam(ns, host);
+				if (availableRam >= cost)
 				{
-					ns.exec(weaken.Script, host, weaken.Threads, weaken.Target, weaken.Delay);
+					let weaken = await CreateWeakenOrder(ns, 0, target, t);
+					weaken.Host = host;
+					
+					ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
 					weaken_running.push(weaken);
-					return true;
+
+					t = threadsRequired - t + 1;
+
+					break;
 				}
 			}
+		}
+
+		let weakenHandled = await IsWeakenHandled(ns, target, threadsRequired);
+		if (weakenHandled)
+		{
+			return true;
 		}
 	}
 
 	return false;
+}
+
+/** @param {NS} ns */
+async function WeakenThreadsRequired(ns, security, minSecurity)
+{
+	let securityReduce = security - minSecurity;
+	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
+	return Math.ceil(securityReduce / baseWeakenAmount);
 }
 
 async function AvailableCount()
@@ -348,7 +394,7 @@ async function AvailableCount()
 	return 0;
 }
 
-async function IsServerPrepped(ns, security, minSecurity, money, growThresh)
+async function IsServerPrepped(security, minSecurity, money, growThresh)
 {
 	if (security <= minSecurity &&
 			money >= growThresh)
@@ -393,17 +439,23 @@ async function IsGrowRunning(newGrow)
 	return false;
 }
 
-async function IsWeakenRunning(newWeaken)
+/** @param {NS} ns */
+async function IsWeakenHandled(ns, target, threadsRequired)
 {
+	let totalThreads = 0;
+
 	let count = weaken_running.length;
 	for (let i = 0; i < count; i++)
 	{
 		let weaken = weaken_running[i];
-		if (weaken.Target == newWeaken.Target &&
-				weaken.Host == newWeaken.Host &&
-				Date.now() < weaken.EndTime)
+		if (weaken.Target == target)
 		{
-			return true;
+			totalThreads += weaken.Threads;
+
+			if (totalThreads >= threadsRequired)
+			{
+				return true;
+			}
 		}
 	}
 
@@ -414,6 +466,12 @@ async function IsWeakenRunning(newWeaken)
 async function GetCost(ns, script, threads)
 {
 	return ns.getScriptRam(script) * threads;
+}
+
+/** @param {NS} ns */
+async function AvailableRam(ns, host)
+{
+	return ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
 }
 
 async function Maintenance()
@@ -451,18 +509,6 @@ async function Maintenance()
 	}
 }
 
-async function StopWeaken(target)
-{
-	for (let i = 0; i < weaken_running.length; i++)
-	{
-		if (weaken_running[i].Target == target)
-		{
-			weaken_running.splice(i, 1);
-			i--;
-		}
-	}
-}
-
 async function StopGrow(target)
 {
 	for (let i = 0; i < grow_running.length; i++)
@@ -475,9 +521,21 @@ async function StopGrow(target)
 	}
 }
 
+async function StopWeaken(target)
+{
+	for (let i = 0; i < weaken_running.length; i++)
+	{
+		if (weaken_running[i].Target == target)
+		{
+			weaken_running.splice(i, 1);
+			i--;
+		}
+	}
+}
+
 async function Log(ns)
 {
 	ns.print(`${colors["white"] + "Batches running:" + colors["green"] + batches_running.length}`);
-	ns.print(`${colors["white"] + "Weakens running:" + colors["green"] + weaken_running.length}`);
 	ns.print(`${colors["white"] + "Grows running:" + colors["green"] + grow_running.length}`);
+	ns.print(`${colors["white"] + "Weakens running:" + colors["green"] + weaken_running.length}`);
 }
