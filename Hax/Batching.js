@@ -62,7 +62,7 @@ async function Batching(ns, targets)
 				StopWeaken(ns, target);
 				StopGrow(ns, target);
 
-				for (let scale = 1.0; scale > 0; scale -= 0.005)
+				for (let scale = 1.0; scale > 0; scale -= 0.1)
 				{
 					let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
 					if (Batch != null)
