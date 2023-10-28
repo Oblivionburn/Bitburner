@@ -1,4 +1,4 @@
-import * as DB from "./Hax/Databasing.js";
+import * as IO from "./Hax/IO.js";
 
 let available_servers = [];
 
@@ -10,7 +10,11 @@ export async function main(ns)
     
     while (true)
     {
-        available_servers = await DB.Select(ns, "available_servers");
+        let available_servers_object = await IO.Read(ns, "available_servers");
+				if (available_servers_object != null)
+				{
+					available_servers = available_servers_object.List;
+				}
 
         ns.clearLog();
         await DistributeScripts(ns);

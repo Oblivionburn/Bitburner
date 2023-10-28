@@ -1,5 +1,5 @@
 import {colors} from "./Hax/UI.js";
-import * as DB from "./Hax/Databasing.js";
+import * as IO from "./Hax/IO.js";
 import * as Root from "./Hax/Root.js";
 
 let base_servers = [];
@@ -26,21 +26,21 @@ export async function main(ns)
 		base_with_ram = [];
 		
 		await DeepScan(ns, "home");
-		await DB.Insert(ns, {Name: "base_servers", List: base_servers});
-		await DB.Insert(ns, {Name: "base_with_money", List: base_with_money});
-		await DB.Insert(ns, {Name: "base_with_ram", List: base_with_ram});
+		await IO.Write(ns, {Name: "base_servers", List: base_servers});
+		await IO.Write(ns, {Name: "base_with_money", List: base_with_money});
+		await IO.Write(ns, {Name: "base_with_ram", List: base_with_ram});
 
 		await Scan_PurchasedServers(ns);
-		await DB.Insert(ns, {Name: "purchased_servers", List: purchased_servers});
+		await IO.Write(ns, {Name: "purchased_servers", List: purchased_servers});
 
 		await RootServers(ns);
 		await Scan_RootedServers(ns);
-		await DB.Insert(ns, {Name: "rooted_servers", List: rooted_servers});
-		await DB.Insert(ns, {Name: "rooted_with_money", List: rooted_with_money});
-		await DB.Insert(ns, {Name: "rooted_with_ram", List: rooted_with_ram});
+		await IO.Write(ns, {Name: "rooted_servers", List: rooted_servers});
+		await IO.Write(ns, {Name: "rooted_with_money", List: rooted_with_money});
+		await IO.Write(ns, {Name: "rooted_with_ram", List: rooted_with_ram});
 
 		await Scan_AvailableServers(ns);
-		await DB.Insert(ns, {Name: "available_servers", List: available_servers});
+		await IO.Write(ns, {Name: "available_servers", List: available_servers});
 
 		await Log(ns);
 		

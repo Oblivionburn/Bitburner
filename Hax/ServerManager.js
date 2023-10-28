@@ -1,5 +1,5 @@
 import {colors} from "./Hax/UI.js";
-import * as DB from "./Hax/Databasing.js";
+import * as IO from "./Hax/IO.js";
 
 let money = 0;
 let serverRamLimit = 0;
@@ -27,8 +27,13 @@ export async function main(ns)
 	{
 		ns.resizeTail(440, 280);
 
-		purchased_servers = await DB.Select(ns, "purchased_servers");
-		if (purchased_servers != null)
+		let purchased_servers_object = await IO.Read(ns, "purchased_servers");
+		if (purchased_servers_object != null)
+		{
+			purchased_servers = purchased_servers_object.List;
+		}
+
+		if (purchased_servers.length > 0)
 		{
 			purchasedNum = purchased_servers.length;
 

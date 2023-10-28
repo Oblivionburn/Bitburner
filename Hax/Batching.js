@@ -1,5 +1,5 @@
-import {colors,DTStamp} from "./Hax/UI.js";
-import * as DB from "./Hax/Databasing.js";
+import * as UI from "./Hax/UI.js";
+import * as IO from "./Hax/IO.js";
 
 let available_servers = [];
 let targets = [];
@@ -7,12 +7,15 @@ let batches_running = [];
 let grow_running = [];
 let weaken_running = [];
 let growThreshFactor = 0.1;
+let body = "";
 
 /** @param {NS} ns */
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	//ns.tail(ns.getScriptName(), "home");
+	ns.tail(ns.getScriptName(), "home");
+
+	let container = UI.injectContainer(ns, eval('document'));
 
 	batches_running = [];
 	grow_running = [];
@@ -20,22 +23,25 @@ export async function main(ns)
 
 	while (true)
 	{
-		ns.resizeTail(260, 140);
-		available_servers = await DB.Select(ns, "available_servers");
-		targets = await DB.Select(ns, "targets");
+		let available_servers_object = await IO.Read(ns, "available_servers");
+		if (available_servers_object != null)
+		{
+			available_servers = available_servers_object.List;
+		}
+
+		let targets_object = await IO.Read(ns, "targets");
+		if (targets_object != null)
+		{
+			targets = targets_object.List;
+		}
+
+		body = "<tbody>";
 
 		await Batching(ns, targets);
-
-		await DB.Insert(ns, {Name: "batches_running", List: batches_running});
-		await DB.Insert(ns, {Name: "grow_running", List: grow_running});
-		await DB.Insert(ns, {Name: "weaken_running", List: weaken_running});
-
+		await Monitor(ns, container);
 		await Maintenance();
 
-		ns.clearLog();
-		await Log(ns);
-
-		await ns.sleep(5);
+		await ns.sleep(1);
 	}
 }
 
@@ -50,19 +56,76 @@ async function Batching(ns, targets)
 		{
 			let target = targets[t];
 
+			let requiredHack = ns.getServerRequiredHackingLevel(target);
 			let money = ns.getServerMoneyAvailable(target);
 			let maxMoney = ns.getServerMaxMoney(target);
 			let security = ns.getServerSecurityLevel(target);
 			let minSecurity = ns.getServerMinSecurityLevel(target);
 			let growThresh = maxMoney * growThreshFactor;
 
+			let securityColor = "LimeGreen";
+			if (security > minSecurity * 2)
+			{
+				securityColor = "Red";
+			}
+			else if (security > minSecurity)
+			{
+				securityColor = "Yellow";
+			}
+
+			let moneyColor = "LimeGreen";
+			if (money < maxMoney / 10)
+			{
+				moneyColor = "Red";
+			}
+			else if (money < maxMoney)
+			{
+				moneyColor = "Yellow";
+			}
+
+			let batchColor = "Black";
+			let batchCount = await GetBatchCount(target);
+			if (batchCount > 0)
+			{
+				batchColor = "LimeGreen";
+			}
+
+			let weakenColor = "Black";
+			let weakenCount = await GetWeakenCount(target);
+			if (weakenCount > 0)
+			{
+				weakenColor = "LimeGreen";
+			}
+
+			let growColor = "Black";
+			let growCount = await GetGrowCount(target);
+			if (growCount > 0)
+			{
+				growColor = "LimeGreen";
+			}
+
+			body += `
+				<tr>
+					<td style="color:DarkGray;">${t}</td>
+					<td style="color:${batchColor};">${batchCount}</td>
+					<td style="color:White;">${target}</td>
+					<td style="color:White;">${requiredHack}</td>
+					<td style="color:${securityColor};">${security.toFixed(3)}</td>
+					<td style="color:White;">${minSecurity.toFixed(2)}</td>
+					<td style="color:${weakenColor};">${weakenCount}</td>
+					<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
+					<td style="color:White;">$${maxMoney.toLocaleString()}</td>
+					<td style="color:${growColor};">${growCount}</td>
+				</tr>`;
+
 			let prepped = await IsServerPrepped(security, minSecurity, money, growThresh);
-			if (prepped)
+			if (prepped ||
+					batchCount > 0)
 			{
 				StopWeaken(ns, target);
 				StopGrow(ns, target);
 
-				for (let scale = 1.0; scale > 0; scale -= 0.1)
+				for (let scale = 1.0; scale > 0; scale -= 0.2)
 				{
 					let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
 					if (Batch != null)
@@ -78,11 +141,13 @@ async function Batching(ns, targets)
 			}
 			else
 			{
-				if (security > minSecurity)
+				if (security > minSecurity &&
+						batchCount == 0)
 				{
 					await WeakenTarget(ns, target, security, minSecurity);
 				}
-				else if (money < growThresh)
+				else if (money < growThresh &&
+								 batchCount == 0)
 				{
 					StopWeaken(ns, target);
 
@@ -98,47 +163,11 @@ async function Batching(ns, targets)
 */
 
 /** @param {NS} ns */
-async function SendBatch(ns, batch)
-{
-	let availableCount = await AvailableCount();
-	for (let i = 0; i < availableCount; i++)
-	{
-		let host = available_servers[i];
-		if (ns.serverExists(host))
-		{
-			//Factor in cost of running the RunBatch.js itself
-			let runBatchScriptCost = await GetCost(ns, "/Hax/RunBatch.js", 1);
-			let totalCost = batch.Cost + runBatchScriptCost;
-
-			let availableRam = await AvailableRam(ns, host);
-			if (availableRam >= totalCost)
-			{
-				batch.Host = host;
-
-				let isBatchRunning = await IsBatchRunning(batch);
-				if (!isBatchRunning)
-				{
-					let str = JSON.stringify(batch);
-					let pid = ns.exec("/Hax/RunBatch.js", host, 1, str);
-					if (pid > 0)
-					{
-						batches_running.push(batch);
-						return true;
-					}
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
-/** @param {NS} ns */
 async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale)
 {
 	let growThresh = maxMoney * growThreshFactor;
 
-	//Time diff between batches = 400ms
+	//Time diff between batches = 4ms
 	let Hack = await BatchHackOrder(ns, 0, target, maxMoney, scale);
 	let hackSecurityIncrease = security + Hack.SecurityDiff;
 	let moneyStolen = growThresh * scale;
@@ -149,10 +178,10 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 	let growSecurityIncrease = security + Grow.SecurityDiff;
 
 	//ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Grow Security: " + growSecurityIncrease}`);
-	let WeakenTwo = await BatchWeakenOrder(ns, 200, target, security + growSecurityIncrease, minSecurity, scale);
+	let WeakenTwo = await BatchWeakenOrder(ns, 2, target, security + growSecurityIncrease, minSecurity, scale);
 
-	Grow.Delay = (WeakenOne.Time - ns.getGrowTime(target)) + 100;
-	Hack.Delay = (WeakenOne.Time - ns.getHackTime(target)) - 100;
+	Grow.Delay = (WeakenOne.Time - ns.getGrowTime(target)) + 1;
+	Hack.Delay = (WeakenOne.Time - ns.getHackTime(target)) - 1;
 
 	if (WeakenOne.Threads > 0 &&
 			WeakenTwo.Threads > 0 &&
@@ -166,7 +195,7 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 		orders.push(Hack);
 
 		let totalCost = WeakenOne.Cost + WeakenTwo.Cost + Grow.Cost + Hack.Cost;
-		let endTime = Date.now() + WeakenOne.Time + 200;
+		let endTime = Date.now() + WeakenOne.Time + 2;
 
 		let batch =
 		{
@@ -272,6 +301,42 @@ async function BatchGrowOrder(ns, delay, target, money, growThresh, scale)
 	return order;
 }
 
+/** @param {NS} ns */
+async function SendBatch(ns, batch)
+{
+	let availableCount = await AvailableCount();
+	for (let i = 0; i < availableCount; i++)
+	{
+		let host = available_servers[i];
+		if (ns.serverExists(host))
+		{
+			//Factor in cost of running the RunBatch.js itself
+			let runBatchScriptCost = await GetCost(ns, "/Hax/RunBatch.js", 1);
+			let totalCost = batch.Cost + runBatchScriptCost;
+
+			let availableRam = await AvailableRam(ns, host);
+			if (availableRam >= totalCost)
+			{
+				batch.Host = host;
+
+				let isBatchRunning = await IsBatchRunning(batch);
+				if (!isBatchRunning)
+				{
+					let str = JSON.stringify(batch);
+					let pid = ns.exec("/Hax/RunBatch.js", host, 1, str);
+					if (pid > 0)
+					{
+						batches_running.push(batch);
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 async function IsBatchRunning(newBatch)
 {
 	let count = batches_running.length;
@@ -287,6 +352,23 @@ async function IsBatchRunning(newBatch)
 	}
 
 	return false;
+}
+
+async function GetBatchCount(target)
+{
+	let total = 0;
+
+	let count = batches_running.length;
+	for (let i = 0; i < count; i++)
+	{
+		let batch = batches_running[i];
+		if (batch.Target == target)
+		{
+			total++;
+		}
+	}
+
+	return total;
 }
 
 /*
@@ -412,6 +494,23 @@ async function IsWeakenRunning(newWeaken)
 	}
 
 	return false;
+}
+
+async function GetWeakenCount(target)
+{
+	let total = 0;
+
+	let count = weaken_running.length;
+	for (let i = 0; i < count; i++)
+	{
+		let weaken = weaken_running[i];
+		if (weaken.Target == target)
+		{
+			total++;
+		}
+	}
+
+	return total;
 }
 
 /*
@@ -550,6 +649,23 @@ async function IsGrowRunning(newGrow)
 	return false;
 }
 
+async function GetGrowCount(target)
+{
+	let total = 0;
+
+	let count = grow_running.length;
+	for (let i = 0; i < count; i++)
+	{
+		let grow = grow_running[i];
+		if (grow.Target == target)
+		{
+			total++;
+		}
+	}
+
+	return total;
+}
+
 /*
 	Support functions
 */
@@ -654,9 +770,30 @@ async function StopWeaken(target)
 */
 
 /** @param {NS} ns */
-async function Log(ns)
+async function Monitor(ns, container)
 {
-	ns.print(`${colors["white"] + "Batches running:" + colors["green"] + batches_running.length}`);
-	ns.print(`${colors["white"] + "Grows running:" + colors["green"] + grow_running.length}`);
-	ns.print(`${colors["white"] + "Weakens running:" + colors["green"] + weaken_running.length}`);
+	if (container != null)
+	{
+		let table = `<table border=1 style="width: 100%; height: 100%">`;
+		let header = `
+			<thead>
+				<tr style="color:DarkGray;">
+					<th>Target Index</th>
+					<th>Batching</th>
+					<th style="min-width: 200px;">Server</th>
+					<th>Hack Level</th>
+					<th>Security</th>
+					<th>Min Security</th>
+					<th>Weakening</th>
+					<th style="width: 100%;">Money</th>
+					<th>Max Money</th>
+					<th>Growing</th>
+				</tr>
+			</thead>`;
+
+		let final = "</tbody></table>";
+
+		let content = table + header + body + final;
+		container.innerHTML = content;
+	}
 }

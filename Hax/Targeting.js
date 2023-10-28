@@ -1,5 +1,5 @@
 import {colors} from "./Hax/UI.js";
-import * as DB from "./Hax/Databasing.js";
+import * as IO from "./Hax/IO.js";
 
 let rooted_with_money = [];
 let targets = [];
@@ -18,9 +18,13 @@ export async function main(ns)
 	{
 		ns.resizeTail(280, 160);
 		
-		rooted_with_money = await DB.Select(ns, "rooted_with_money");
+		let rooted_with_money_object = await IO.Read(ns, "rooted_with_money");
+		if (rooted_with_money_object != null)
+		{
+			rooted_with_money = rooted_with_money_object.List;
+		}
 
-		if (rooted_with_money != null)
+		if (rooted_with_money.length > 0)
 		{
 			rooted_with_money.sort((a,b) => ns.getServerMaxMoney(a) - ns.getServerMaxMoney(b));
 		}
@@ -35,7 +39,7 @@ export async function main(ns)
 			targets.sort((a,b) => ns.getServerRequiredHackingLevel(b) - ns.getServerRequiredHackingLevel(a));
 		}
 
-		await DB.Insert(ns, {Name: "targets", List: targets});
+		await IO.Write(ns, {Name: "targets", List: targets});
 		await Log(ns);
 		await ns.sleep(1);
 	}

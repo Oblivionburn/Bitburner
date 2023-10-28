@@ -1,14 +1,19 @@
-import * as DB from "./Hax/Databasing.js";
+import * as IO from "./Hax/IO.js";
 import {colors} from "./Hax/UI.js";
+
+let base_servers = [];
+let purchased_servers = [];
 
 /** @param {NS} ns */
 export async function main(ns)
 {
 	let scripts = ["/Hax/Grow.js", "/Hax/Hack.js", "/Hax/Weaken.js", "/Hax/RunBatch.js"];
 
-	let base_servers = await DB.Select(ns, "base_servers");
-	if (base_servers != null)
+	let base_servers_object = await IO.Read(ns, "base_servers");
+	if (base_servers_object != null)
 	{
+		base_servers = base_servers_object.List;
+
 		for (let i = 0; i < base_servers.length; i++)
 		{
 			let server = base_servers[i];
@@ -20,9 +25,11 @@ export async function main(ns)
 		}
 	}
 
-	let purchased_servers = await DB.Select(ns, "purchased_servers");
-	if (purchased_servers != null)
+	let purchased_servers_object = await IO.Read(ns, "purchased_servers");
+	if (purchased_servers_object != null)
 	{
+		purchased_servers = purchased_servers_object.List;
+
 		for (let i = 0; i < purchased_servers.length; i++)
 		{
 			let server = purchased_servers[i];
@@ -50,11 +57,11 @@ export async function main(ns)
 		ns.scriptKill("/Hax/Distributing.js", "home");
 	}
 
-	let monitor = ns.getRunningScript("/Hax/Monitor.js", "home");
-	if (monitor != null)
+	let serverManager = ns.getRunningScript("/Hax/ServerManager.js", "home");
+	if (serverManager != null)
 	{
-		ns.closeTail(monitor.pid);
-		ns.scriptKill("/Hax/Monitor.js", "home");
+		ns.closeTail(serverManager.pid);
+		ns.scriptKill("/Hax/ServerManager.js", "home");
 	}
 
 	let targeting = ns.getRunningScript("/Hax/Targeting.js", "home");
@@ -63,13 +70,6 @@ export async function main(ns)
 		ns.closeTail(targeting.pid);
 		ns.scriptKill("/Hax/Targeting.js", "home");
 	}
-
-	let serverManager = ns.getRunningScript("/Hax/ServerManager.js", "home");
-	if (serverManager != null)
-	{
-		ns.closeTail(serverManager.pid);
-		ns.scriptKill("/Hax/ServerManager.js", "home");
-	}
 	
 	let networking = ns.getRunningScript("/Hax/Networking.js", "home");
 	if (networking != null)
@@ -77,14 +77,26 @@ export async function main(ns)
 		ns.closeTail(networking.pid);
 		ns.scriptKill("/Hax/Networking.js", "home");
 	}
-	
-	let databasing = ns.getRunningScript("/Hax/Databasing.js", "home");
-	if (databasing != null)
-	{
-		ns.closeTail(databasing.pid);
-		ns.scriptKill("/Hax/Databasing.js", "home");
-	}
 
+	let index = await IO.Read(ns, "Index");
+	if (index != null)
+	{
+		for (let i = 0; i < index.length; i++)
+		{
+			let fileName = index[i];
+			if (ns.fileExists(fileName))
+			{
+				ns.rm(fileName);
+			}
+		}
+
+		let indexFile = "/Hax/Index.txt";
+		if (ns.fileExists(indexFile))
+		{
+			ns.rm(indexFile);
+		}
+	}
+	
 	ns.tprint(`${colors["white"] + "Hax has stopped."}`);
 }
 
