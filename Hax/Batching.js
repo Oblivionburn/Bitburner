@@ -38,7 +38,7 @@ export async function main(ns)
 		body = "<tbody>";
 
 		await Batching(ns, targets);
-		await Monitor(ns, container);
+		await UpdateContainer(container);
 		await Maintenance();
 
 		await ns.sleep(1);
@@ -63,60 +63,8 @@ async function Batching(ns, targets)
 			let minSecurity = ns.getServerMinSecurityLevel(target);
 			let growThresh = maxMoney * growThreshFactor;
 
-			let securityColor = "LimeGreen";
-			if (security > minSecurity * 2)
-			{
-				securityColor = "Red";
-			}
-			else if (security > minSecurity)
-			{
-				securityColor = "Yellow";
-			}
-
-			let moneyColor = "LimeGreen";
-			if (money < maxMoney / 10)
-			{
-				moneyColor = "Red";
-			}
-			else if (money < maxMoney)
-			{
-				moneyColor = "Yellow";
-			}
-
-			let batchColor = "Black";
 			let batchCount = await GetBatchCount(target);
-			if (batchCount > 0)
-			{
-				batchColor = "LimeGreen";
-			}
-
-			let weakenColor = "Black";
-			let weakenCount = await GetWeakenCount(target);
-			if (weakenCount > 0)
-			{
-				weakenColor = "LimeGreen";
-			}
-
-			let growColor = "Black";
-			let growCount = await GetGrowCount(target);
-			if (growCount > 0)
-			{
-				growColor = "LimeGreen";
-			}
-
-			body += `
-				<tr>
-					<td style="color:DarkGray;">${t}</td>
-					<td style="color:${batchColor};">${batchCount}</td>
-					<td style="color:White;">${target}</td>
-					<td style="color:White;">${requiredHack}</td>
-					<td style="color:${securityColor};">${security.toFixed(3)}</td>
-					<td style="color:White;">${minSecurity.toFixed(2)}</td>
-					<td style="color:${weakenColor};">${weakenCount}</td>
-					<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
-					<td style="color:White;">$${maxMoney.toLocaleString()}</td>
-					<td style="color:${growColor};">${growCount}</td>
-				</tr>`;
+			await GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack);
 
 			let prepped = await IsServerPrepped(security, minSecurity, money, growThresh);
 			if (prepped ||
@@ -769,8 +717,65 @@ async function StopWeaken(target)
 	Logging
 */
 
+async function GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack)
+{
+	let securityColor = "LimeGreen";
+	if (security > minSecurity * 2)
+	{
+		securityColor = "Red";
+	}
+	else if (security > minSecurity)
+	{
+		securityColor = "Yellow";
+	}
+
+	let moneyColor = "LimeGreen";
+	if (money < maxMoney / 10)
+	{
+		moneyColor = "Red";
+	}
+	else if (money < maxMoney)
+	{
+		moneyColor = "Yellow";
+	}
+
+	let batchColor = "Black";
+	if (batchCount > 0)
+	{
+		batchColor = "LimeGreen";
+	}
+
+	let weakenColor = "Black";
+	let weakenCount = await GetWeakenCount(target);
+	if (weakenCount > 0)
+	{
+		weakenColor = "LimeGreen";
+	}
+
+	let growColor = "Black";
+	let growCount = await GetGrowCount(target);
+	if (growCount > 0)
+	{
+		growColor = "LimeGreen";
+	}
+
+	body += `
+		<tr>
+			<td style="color:DarkGray;">${t}</td>
+			<td style="color:${batchColor};">${batchCount}</td>
+			<td style="color:White;">${target}</td>
+			<td style="color:White;">${requiredHack}</td>
+			<td style="color:${securityColor};">${security.toFixed(3)}</td>
+			<td style="color:White;">${minSecurity.toFixed(2)}</td>
+			<td style="color:${weakenColor};">${weakenCount}</td>
+			<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
+			<td style="color:White;">$${maxMoney.toLocaleString()}</td>
+			<td style="color:${growColor};">${growCount}</td>
+		</tr>`;
+}
+
 /** @param {NS} ns */
-async function Monitor(ns, container)
+async function UpdateContainer(container)
 {
 	if (container != null)
 	{
