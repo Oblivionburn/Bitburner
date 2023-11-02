@@ -37,20 +37,22 @@ export async function main(ns)
 
 		body = "<tbody>";
 
-		await Batching(ns, targets);
-		await UpdateContainer(container);
-		await Maintenance();
+		Batching(ns, targets);
+		UpdateContainer(container);
+		Maintenance();
 
 		await ns.sleep(1);
 	}
 }
 
 /** @param {NS} ns */
-async function Batching(ns, targets)
+function Batching(ns, targets)
 {
 	if (targets != null &&
 			targets.length > 0)
 	{
+		let now = Date.now();
+
 		let targetCount = targets.length;
 		for (let t = 0; t < targetCount; t++)
 		{
@@ -61,24 +63,26 @@ async function Batching(ns, targets)
 			let maxMoney = ns.getServerMaxMoney(target);
 			let security = ns.getServerSecurityLevel(target);
 			let minSecurity = ns.getServerMinSecurityLevel(target);
-			let growThresh = maxMoney * growThreshFactor;
 
-			let batchCount = await GetBatchCount(target);
-			await GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack);
+			let batchCount = GetBatchCount(target);
+			GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack);
 
-			let prepped = await IsServerPrepped(security, minSecurity, money, growThresh);
-			if (prepped ||
-					batchCount > 0)
+			let lastBatch = GetLastBatch(target);
+			let batchTime = (lastBatch != null && now >= lastBatch.StartTime + 40) || lastBatch == null;
+
+			let prepped = IsServerPrepped(security, minSecurity, money, maxMoney);
+			if (prepped &&
+					batchTime)
 			{
 				StopWeaken(ns, target);
 				StopGrow(ns, target);
 
 				for (let scale = 1.0; scale > 0; scale -= 0.2)
 				{
-					let Batch = await CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale);
+					let Batch = CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale);
 					if (Batch != null)
 					{
-						let sent = await SendBatch(ns, Batch);
+						let sent = SendBatch(ns, Batch);
 
 						if (sent)
 						{
@@ -92,14 +96,14 @@ async function Batching(ns, targets)
 				if (security > minSecurity &&
 						batchCount == 0)
 				{
-					await WeakenTarget(ns, target, security, minSecurity);
+					WeakenTarget(ns, target, security, minSecurity);
 				}
-				else if (money < growThresh &&
+				else if (money < maxMoney &&
 								 batchCount == 0)
 				{
 					StopWeaken(ns, target);
 
-					await GrowTarget(ns, target, money, growThresh);
+					GrowTarget(ns, target, money, maxMoney);
 				}
 			}
 		}
@@ -111,25 +115,36 @@ async function Batching(ns, targets)
 */
 
 /** @param {NS} ns */
-async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, scale)
+function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 {
 	let growThresh = maxMoney * growThreshFactor;
 
-	//Time diff between batches = 4ms
-	let Hack = await BatchHackOrder(ns, 0, target, maxMoney, scale);
-	let hackSecurityIncrease = security + Hack.SecurityDiff;
+	let Hack = BatchHackOrder(ns, now, target, maxMoney, scale);
+	let weakenOneSecurity = security + Hack.SecurityDiff;
 	let moneyStolen = growThresh * scale;
 
-	let WeakenOne = await BatchWeakenOrder(ns, 0, target, hackSecurityIncrease, minSecurity, scale);
+	let WeakenOne = BatchWeakenOrder(ns, 0, now, target, weakenOneSecurity, minSecurity, scale);
 
-	let Grow = await BatchGrowOrder(ns, 0, target, money - moneyStolen, growThresh, scale);
-	let growSecurityIncrease = security + Grow.SecurityDiff;
+	let Grow = BatchGrowOrder(ns, now, target, maxMoney - moneyStolen, growThresh, scale);
 
-	//ns.print(`${colors["white"] + DTStamp() + colors["red"] + "Grow Security: " + growSecurityIncrease}`);
-	let WeakenTwo = await BatchWeakenOrder(ns, 2, target, security + growSecurityIncrease, minSecurity, scale);
+	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff + Grow.SecurityDiff;
+	if (weakenTwoSecurity < minSecurity)
+	{
+		weakenTwoSecurity = minSecurity;
+	}
 
-	Grow.Delay = (WeakenOne.Time - ns.getGrowTime(target)) + 1;
-	Hack.Delay = (WeakenOne.Time - ns.getHackTime(target)) - 1;
+	let WeakenTwo = BatchWeakenOrder(ns, 20, now, target, weakenTwoSecurity, minSecurity, scale);
+
+	WeakenOne.EndTime = now + WeakenOne.Time;
+
+	Hack.Delay = (WeakenOne.EndTime - Hack.Time - 10) - now;
+	Hack.EndTime = now + Hack.Delay + Hack.Time;
+
+	Grow.Delay = (WeakenOne.EndTime - Grow.Time + 10) - now;
+	Grow.EndTime = now + Grow.Delay + Grow.Time;
+
+	WeakenTwo.Delay = (WeakenOne.EndTime - WeakenTwo.Time + 20) - now;
+	WeakenTwo.EndTime = now + WeakenTwo.Delay + WeakenTwo.Time;
 
 	if (WeakenOne.Threads > 0 &&
 			WeakenTwo.Threads > 0 &&
@@ -143,13 +158,13 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 		orders.push(Hack);
 
 		let totalCost = WeakenOne.Cost + WeakenTwo.Cost + Grow.Cost + Hack.Cost;
-		let endTime = Date.now() + WeakenOne.Time + 2;
+		let endTime = now + WeakenOne.Time + 20;
 
 		let batch =
 		{
 			Host: "",
 			Target: target,
-			StartTime: Date.now(),
+			StartTime: now,
 			EndTime: endTime,
 			Cost: totalCost,
 			Orders: orders
@@ -162,7 +177,7 @@ async function CreateBatch(ns, target, security, minSecurity, money, maxMoney, s
 }
 
 /** @param {NS} ns */
-async function BatchHackOrder(ns, delay, target, maxMoney, scale)
+function BatchHackOrder(ns, now, target, maxMoney, scale)
 {
 	let growThresh = maxMoney * growThreshFactor;
 
@@ -171,15 +186,15 @@ async function BatchHackOrder(ns, delay, target, maxMoney, scale)
 	let percentStolen = ns.hackAnalyze(target);
 	let securityDiff = ns.hackAnalyzeSecurity(threads, target);
 	let time = ns.getHackTime(target);
-	let cost = await GetCost(ns, script, threads);
+	let cost = GetCost(ns, script, threads);
 
 	let order =
 	{
 		Host: "",
 		Target: target,
-		Delay: delay,
-		StartTime: Date.now(),
-		EndTime: Date.now() + time,
+		Delay: 0,
+		StartTime: now,
+		EndTime: 0,
 		Time: time,
 		Cost: cost,
 		Script: script,
@@ -192,53 +207,23 @@ async function BatchHackOrder(ns, delay, target, maxMoney, scale)
 }
 
 /** @param {NS} ns */
-async function BatchWeakenOrder(ns, delay, target, security, minSecurity, scale)
+function BatchWeakenOrder(ns, delay, now, target, security, minSecurity, scale)
 {
 	let script = "/Hax/Weaken.js";
 	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
 	let time = ns.getWeakenTime(target);
 	let securityReduce = security - minSecurity;
 	let threads = Math.ceil((securityReduce / baseWeakenAmount) * scale);
-	let cost = await GetCost(ns, script, threads);
-
+	let cost = GetCost(ns, script, threads);
+	let securityDiff = ns.weakenAnalyze(threads, 1);
+	
 	let order =
 	{
 		Host: "",
 		Target: target,
 		Delay: delay,
-		StartTime: Date.now(),
-		EndTime: Date.now() + time,
-		Time: time,
-		Cost: cost,
-		Script: script,
-		Threads: threads
-	}
-
-	return order;
-}
-
-/** @param {NS} ns */
-async function BatchGrowOrder(ns, delay, target, money, growThresh, scale)
-{
-	let growMulti = growThresh;
-	if (money > 0)
-	{
-		growMulti = growThresh / money;
-	}
-
-	let script = "/Hax/Grow.js";
-	let threads = Math.ceil(ns.growthAnalyze(target, 1 + Math.ceil(growMulti), 1) * scale);
-	let securityDiff = ns.growthAnalyzeSecurity(threads, target, 1);
-	let time = ns.getGrowTime(target);
-	let cost = await GetCost(ns, script, threads);
-
-	let order =
-	{
-		Host: "",
-		Target: target,
-		Delay: delay,
-		StartTime: Date.now(),
-		EndTime: Date.now() + time,
+		StartTime: now,
+		EndTime: 0,
 		Time: time,
 		Cost: cost,
 		Script: script,
@@ -250,24 +235,56 @@ async function BatchGrowOrder(ns, delay, target, money, growThresh, scale)
 }
 
 /** @param {NS} ns */
-async function SendBatch(ns, batch)
+function BatchGrowOrder(ns, now, target, money, growThresh, scale)
 {
-	let availableCount = await AvailableCount();
+	let growMulti = growThresh;
+	if (money > 0)
+	{
+		growMulti = growThresh / money;
+	}
+
+	let script = "/Hax/Grow.js";
+	let threads = Math.ceil(ns.growthAnalyze(target, 1 + Math.ceil(growMulti), 1) * scale);
+	let securityDiff = ns.growthAnalyzeSecurity(threads);
+	let time = ns.getGrowTime(target);
+	let cost = GetCost(ns, script, threads);
+
+	let order =
+	{
+		Host: "",
+		Target: target,
+		Delay: 0,
+		StartTime: now,
+		EndTime: 0,
+		Time: time,
+		Cost: cost,
+		Script: script,
+		Threads: threads,
+		SecurityDiff: securityDiff
+	}
+
+	return order;
+}
+
+/** @param {NS} ns */
+function SendBatch(ns, batch)
+{
+	let availableCount = AvailableCount();
 	for (let i = 0; i < availableCount; i++)
 	{
 		let host = available_servers[i];
 		if (ns.serverExists(host))
 		{
 			//Factor in cost of running the RunBatch.js itself
-			let runBatchScriptCost = await GetCost(ns, "/Hax/RunBatch.js", 1);
+			let runBatchScriptCost = GetCost(ns, "/Hax/RunBatch.js", 1);
 			let totalCost = batch.Cost + runBatchScriptCost;
 
-			let availableRam = await AvailableRam(ns, host);
+			let availableRam = AvailableRam(ns, host);
 			if (availableRam >= totalCost)
 			{
 				batch.Host = host;
 
-				let isBatchRunning = await IsBatchRunning(batch);
+				let isBatchRunning = IsBatchRunning(batch);
 				if (!isBatchRunning)
 				{
 					let str = JSON.stringify(batch);
@@ -285,7 +302,7 @@ async function SendBatch(ns, batch)
 	return false;
 }
 
-async function IsBatchRunning(newBatch)
+function IsBatchRunning(newBatch)
 {
 	let count = batches_running.length;
 	for (let i = 0; i < count; i++)
@@ -302,7 +319,7 @@ async function IsBatchRunning(newBatch)
 	return false;
 }
 
-async function GetBatchCount(target)
+function GetBatchCount(target)
 {
 	let total = 0;
 
@@ -319,16 +336,31 @@ async function GetBatchCount(target)
 	return total;
 }
 
+function GetLastBatch(target)
+{
+	let count = batches_running.length;
+	for (let i = count - 1; i >= 0; i--)
+	{
+		let batch = batches_running[i];
+		if (batch.Target == target)
+		{
+			return batch;
+		}
+	}
+
+	return null;
+}
+
 /*
 	Handle weakening
 */
 
 /** @param {NS} ns */
-async function WeakenTarget(ns, target, security, minSecurity)
+function WeakenTarget(ns, target, security, minSecurity)
 {
-	let threadsRequired = await WeakenThreadsRequired(ns, security, minSecurity);
+	let threadsRequired = WeakenThreadsRequired(ns, security, minSecurity);
 
-	let weakenHandled = await IsWeakenHandled(target, threadsRequired);
+	let weakenHandled = IsWeakenHandled(target, threadsRequired);
 	if (weakenHandled)
 	{
 		return true;
@@ -336,21 +368,21 @@ async function WeakenTarget(ns, target, security, minSecurity)
 
 	for (let t = threadsRequired; t > 0; t--)
 	{
-		let cost = await GetCost(ns, "/Hax/Weaken.js", t);
+		let cost = GetCost(ns, "/Hax/Weaken.js", t);
 
-		let availableCount = await AvailableCount();
+		let availableCount = AvailableCount();
 		for (let i = 0; i < availableCount; i++)
 		{
 			let host = available_servers[i];
 			if (ns.serverExists(host))
 			{
-				let availableRam = await AvailableRam(ns, host);
+				let availableRam = AvailableRam(ns, host);
 				if (availableRam >= cost)
 				{
-					let weaken = await WeakenOrder(ns, 0, target, t);
+					let weaken = WeakenOrder(ns, 0, target, t);
 					weaken.Host = host;
 
-					let weakenRunning = await IsWeakenRunning(weaken);
+					let weakenRunning = IsWeakenRunning(weaken);
 					if (!weakenRunning)
 					{
 						ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
@@ -364,7 +396,7 @@ async function WeakenTarget(ns, target, security, minSecurity)
 			}
 		}
 
-		let weakenHandled = await IsWeakenHandled(target, threadsRequired);
+		let weakenHandled = IsWeakenHandled(target, threadsRequired);
 		if (weakenHandled)
 		{
 			return true;
@@ -375,7 +407,7 @@ async function WeakenTarget(ns, target, security, minSecurity)
 }
 
 /** @param {NS} ns */
-async function WeakenThreadsRequired(ns, security, minSecurity)
+function WeakenThreadsRequired(ns, security, minSecurity)
 {
 	let securityReduce = security - minSecurity;
 	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
@@ -383,11 +415,11 @@ async function WeakenThreadsRequired(ns, security, minSecurity)
 }
 
 /** @param {NS} ns */
-async function WeakenOrder(ns, delay, target, threads)
+function WeakenOrder(ns, delay, target, threads)
 {
 	let script = "/Hax/Weaken.js";
 	let time = ns.getWeakenTime(target);
-	let cost = await GetCost(ns, script, threads);
+	let cost = GetCost(ns, script, threads);
 
 	let order =
 	{
@@ -405,7 +437,7 @@ async function WeakenOrder(ns, delay, target, threads)
 	return order;
 }
 
-async function IsWeakenHandled(target, threadsRequired)
+function IsWeakenHandled(target, threadsRequired)
 {
 	let totalThreads = 0;
 
@@ -427,7 +459,7 @@ async function IsWeakenHandled(target, threadsRequired)
 	return false;
 }
 
-async function IsWeakenRunning(newWeaken)
+function IsWeakenRunning(newWeaken)
 {
 	let count = weaken_running.length;
 	for (let i = 0; i < count; i++)
@@ -444,7 +476,7 @@ async function IsWeakenRunning(newWeaken)
 	return false;
 }
 
-async function GetWeakenCount(target)
+function GetWeakenCount(target)
 {
 	let total = 0;
 
@@ -466,11 +498,11 @@ async function GetWeakenCount(target)
 */
 
 /** @param {NS} ns */
-async function GrowTarget(ns, target, money, growThresh)
+function GrowTarget(ns, target, money, growThresh)
 {
-	let threadsRequired = await GrowThreadsRequired(ns, target, money, growThresh);
+	let threadsRequired = GrowThreadsRequired(ns, target, money, growThresh);
 	
-	let growHandled = await IsGrowHandled(ns, target, threadsRequired);
+	let growHandled = IsGrowHandled(ns, target, threadsRequired);
 	if (growHandled)
 	{
 		return true;
@@ -478,21 +510,21 @@ async function GrowTarget(ns, target, money, growThresh)
 
 	for (let t = threadsRequired; t > 0; t--)
 	{
-		let cost = await GetCost(ns, "/Hax/Grow.js", t);
+		let cost = GetCost(ns, "/Hax/Grow.js", t);
 
-		let availableCount = await AvailableCount();
+		let availableCount = AvailableCount();
 		for (let i = 0; i < availableCount; i++)
 		{
 			let host = available_servers[i];
 			if (ns.serverExists(host))
 			{
-				let availableRam = await AvailableRam(ns, host);
+				let availableRam = AvailableRam(ns, host);
 				if (availableRam >= cost)
 				{
-					let grow = await GrowOrder(ns, 0, target, t);
+					let grow = GrowOrder(ns, 0, target, t);
 					grow.Host = host;
 
-					let growRunning = await IsGrowRunning(grow);
+					let growRunning = IsGrowRunning(grow);
 					if (!growRunning)
 					{
 						ns.exec(grow.Script, grow.Host, grow.Threads, grow.Target, grow.Delay);
@@ -506,7 +538,7 @@ async function GrowTarget(ns, target, money, growThresh)
 			}
 		}
 
-		let growHandled = await IsGrowHandled(ns, target, threadsRequired);
+		let growHandled = IsGrowHandled(ns, target, threadsRequired);
 		if (growHandled)
 		{
 			return true;
@@ -515,7 +547,7 @@ async function GrowTarget(ns, target, money, growThresh)
 }
 
 /** @param {NS} ns */
-async function GrowThreadsRequired(ns, target, money, growThresh)
+function GrowThreadsRequired(ns, target, money, growThresh)
 {
 	let growMulti = growThresh;
 	if (money > 0)
@@ -527,11 +559,11 @@ async function GrowThreadsRequired(ns, target, money, growThresh)
 }
 
 /** @param {NS} ns */
-async function GrowOrder(ns, delay, target, threads)
+function GrowOrder(ns, delay, target, threads)
 {
 	let script = "/Hax/Grow.js";
 	let time = ns.getGrowTime(target);
-	let cost = await GetCost(ns, script, threads);
+	let cost = GetCost(ns, script, threads);
 
 	let order =
 	{
@@ -550,7 +582,7 @@ async function GrowOrder(ns, delay, target, threads)
 }
 
 /** @param {NS} ns */
-async function IsGrowHandled(ns, target, threadsRequired)
+function IsGrowHandled(ns, target, threadsRequired)
 {
 	let money = ns.getServerMoneyAvailable(target);
 	let maxMoney = ns.getServerMaxMoney(target);
@@ -580,7 +612,7 @@ async function IsGrowHandled(ns, target, threadsRequired)
 	return false;
 }
 
-async function IsGrowRunning(newGrow)
+function IsGrowRunning(newGrow)
 {
 	let count = grow_running.length;
 	for (let i = 0; i < count; i++)
@@ -597,7 +629,7 @@ async function IsGrowRunning(newGrow)
 	return false;
 }
 
-async function GetGrowCount(target)
+function GetGrowCount(target)
 {
 	let total = 0;
 
@@ -618,7 +650,7 @@ async function GetGrowCount(target)
 	Support functions
 */
 
-async function AvailableCount()
+function AvailableCount()
 {
 	if (available_servers != null)
 	{
@@ -628,10 +660,10 @@ async function AvailableCount()
 	return 0;
 }
 
-async function IsServerPrepped(security, minSecurity, money, growThresh)
+function IsServerPrepped(security, minSecurity, money, maxMoney)
 {
 	if (security <= minSecurity &&
-			money >= growThresh)
+			money >= maxMoney)
 	{
 		return true;
 	}
@@ -640,18 +672,18 @@ async function IsServerPrepped(security, minSecurity, money, growThresh)
 }
 
 /** @param {NS} ns */
-async function GetCost(ns, script, threads)
+function GetCost(ns, script, threads)
 {
 	return ns.getScriptRam(script) * threads;
 }
 
 /** @param {NS} ns */
-async function AvailableRam(ns, host)
+function AvailableRam(ns, host)
 {
 	return ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
 }
 
-async function Maintenance()
+function Maintenance()
 {
 	let now = Date.now();
 
@@ -687,7 +719,7 @@ async function Maintenance()
 }
 
 /** @param {NS} ns */
-async function StopGrow(ns, target)
+function StopGrow(ns, target)
 {
 	for (let i = 0; i < grow_running.length; i++)
 	{
@@ -700,7 +732,8 @@ async function StopGrow(ns, target)
 	}
 }
 
-async function StopWeaken(target)
+/** @param {NS} ns */
+function StopWeaken(ns, target)
 {
 	for (let i = 0; i < weaken_running.length; i++)
 	{
@@ -717,7 +750,7 @@ async function StopWeaken(target)
 	Logging
 */
 
-async function GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack)
+function GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack)
 {
 	let securityColor = "LimeGreen";
 	if (security > minSecurity * 2)
@@ -746,14 +779,14 @@ async function GenBody(t, target, security, minSecurity, money, maxMoney, batchC
 	}
 
 	let weakenColor = "Black";
-	let weakenCount = await GetWeakenCount(target);
+	let weakenCount = GetWeakenCount(target);
 	if (weakenCount > 0)
 	{
 		weakenColor = "LimeGreen";
 	}
 
 	let growColor = "Black";
-	let growCount = await GetGrowCount(target);
+	let growCount = GetGrowCount(target);
 	if (growCount > 0)
 	{
 		growColor = "LimeGreen";
@@ -775,7 +808,7 @@ async function GenBody(t, target, security, minSecurity, money, maxMoney, batchC
 }
 
 /** @param {NS} ns */
-async function UpdateContainer(container)
+function UpdateContainer(container)
 {
 	if (container != null)
 	{
