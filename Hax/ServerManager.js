@@ -33,7 +33,7 @@ export async function main(ns)
 			purchased_servers = purchased_servers_object.List;
 		}
 
-		if (purchased_servers.length > 0)
+		if (purchased_servers.length >= 0)
 		{
 			purchasedNum = purchased_servers.length;
 
@@ -49,7 +49,7 @@ export async function main(ns)
 
 async function Log(ns)
 {
-	if (purchasedNum > 0)
+	if (purchasedNum >= 0)
 	{
 		ns.print(`${colors["white"] + "Purchased Servers (" + colors["green"] + purchasedNum + "/" + serverNumLimit + colors["white"] + "):"}`);
 		for (let i = 0; i < purchasedNum; i++)

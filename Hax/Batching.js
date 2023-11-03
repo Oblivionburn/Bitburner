@@ -120,14 +120,14 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 	let growThresh = maxMoney * growThreshFactor;
 
 	let Hack = BatchHackOrder(ns, now, target, maxMoney, scale);
-	let weakenOneSecurity = security + Hack.SecurityDiff;
+	let weakenOneSecurity = security + Hack.SecurityDiff + 1;
 	let moneyStolen = growThresh * scale;
 
 	let WeakenOne = BatchWeakenOrder(ns, 0, now, target, weakenOneSecurity, minSecurity, scale);
 
 	let Grow = BatchGrowOrder(ns, now, target, maxMoney - moneyStolen, growThresh, scale);
 
-	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff + Grow.SecurityDiff;
+	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff + Grow.SecurityDiff + 1;
 	if (weakenTwoSecurity < minSecurity)
 	{
 		weakenTwoSecurity = minSecurity;
