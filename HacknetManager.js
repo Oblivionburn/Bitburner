@@ -1,3 +1,8 @@
+/*
+	Automates purchasing of Hacknet Nodes
+	RAM Cost: 6.10GB
+*/
+
 let money = 0;
 let nodesMax = 0;
 let owned = 0;
@@ -71,7 +76,7 @@ async function Update(ns)
 	nextCoreCost = Number.MAX_SAFE_INTEGER;
 
 	if (owned < nodesMax &&
-		money >= nextNodeCost)
+			money >= nextNodeCost)
 	{
 		ns.hacknet.purchaseNode();
 	}
@@ -127,17 +132,17 @@ async function Update(ns)
 		}
 
 		if (node.level < 200 &&
-			money >= levelCost)
+				money >= levelCost)
 		{
 			ns.hacknet.upgradeLevel(i, 1);
 		}
 		else if (node.ram < 64 &&
-				 money >= ramCost)
+				 		 money >= ramCost)
 		{
 			ns.hacknet.upgradeRam(i, 1);
 		}
 		else if (node.cores < 16 &&
-				 money >= coreCost)
+				 		 money >= coreCost)
 		{
 			ns.hacknet.upgradeCore(i, 1);
 		}
@@ -162,7 +167,7 @@ async function Update(ns)
 		{
 			nodesAtMinLevel++;
 		}
-		
+
 		if (node.ram == maxRam)
 		{
 			nodesAtMaxRam++;
@@ -171,7 +176,7 @@ async function Update(ns)
 		{
 			nodesAtMinRam++;
 		}
-		
+
 		if (node.cores == maxCores)
 		{
 			nodesAtMaxCores++;

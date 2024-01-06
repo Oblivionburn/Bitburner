@@ -31,7 +31,7 @@ export async function main(ns)
 		
 		hackLevel = ns.getHackingLevel();
 		minHack = 1;
-		maxHack = Math.ceil(hackLevel / 5);
+		maxHack = Math.ceil(hackLevel / 10);
 
 		await GetTargets(ns);
 		if (targets.length > 1)

@@ -8,6 +8,7 @@ let grow_running = [];
 let weaken_running = [];
 let growThreshFactor = 0.1;
 let body = "";
+let delayScale = 10;
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -39,7 +40,7 @@ export async function main(ns)
 
 		Batching(ns, targets);
 		UpdateContainer(container);
-		Maintenance();
+		Maintenance(ns);
 
 		await ns.sleep(1);
 	}
@@ -68,7 +69,7 @@ function Batching(ns, targets)
 			GenBody(t, target, security, minSecurity, money, maxMoney, batchCount, requiredHack);
 
 			let lastBatch = GetLastBatch(target);
-			let batchTime = (lastBatch != null && now >= lastBatch.StartTime + 40) || lastBatch == null;
+			let batchTime = (lastBatch != null && now >= lastBatch.StartTime + (4 * delayScale)) || lastBatch == null;
 
 			let prepped = IsServerPrepped(security, minSecurity, money, maxMoney);
 			if (prepped &&
@@ -82,8 +83,7 @@ function Batching(ns, targets)
 					let Batch = CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale);
 					if (Batch != null)
 					{
-						let sent = SendBatch(ns, Batch);
-
+						let sent = SendBatch(ns, Batch, scale);
 						if (sent)
 						{
 							break;
@@ -91,18 +91,15 @@ function Batching(ns, targets)
 					}
 				}
 			}
-			else
+			else if (batchCount == 0)
 			{
-				if (security > minSecurity &&
-						batchCount == 0)
+				if (security > minSecurity)
 				{
 					WeakenTarget(ns, target, security, minSecurity);
 				}
-				else if (money < maxMoney &&
-								 batchCount == 0)
+				else if (money < maxMoney)
 				{
 					StopWeaken(ns, target);
-
 					GrowTarget(ns, target, money, maxMoney);
 				}
 			}
@@ -120,36 +117,37 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 	let growThresh = maxMoney * growThreshFactor;
 
 	let Hack = BatchHackOrder(ns, now, target, maxMoney, scale);
-	let weakenOneSecurity = security + Hack.SecurityDiff + 1;
+	let weakenOneSecurity = security + Hack.SecurityDiff;
 	let moneyStolen = growThresh * scale;
 
 	let WeakenOne = BatchWeakenOrder(ns, 0, now, target, weakenOneSecurity, minSecurity, scale);
 
 	let Grow = BatchGrowOrder(ns, now, target, maxMoney - moneyStolen, growThresh, scale);
 
-	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff + Grow.SecurityDiff + 1;
+	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff;
 	if (weakenTwoSecurity < minSecurity)
 	{
 		weakenTwoSecurity = minSecurity;
 	}
+	weakenTwoSecurity += Grow.SecurityDiff;
 
-	let WeakenTwo = BatchWeakenOrder(ns, 20, now, target, weakenTwoSecurity, minSecurity, scale);
+	let WeakenTwo = BatchWeakenOrder(ns, (2 * delayScale), now, target, weakenTwoSecurity, minSecurity, scale);
 
 	WeakenOne.EndTime = now + WeakenOne.Time;
 
-	Hack.Delay = (WeakenOne.EndTime - Hack.Time - 10) - now;
+	Hack.Delay = (WeakenOne.EndTime - Hack.Time - (1 * delayScale)) - now;
 	Hack.EndTime = now + Hack.Delay + Hack.Time;
 
-	Grow.Delay = (WeakenOne.EndTime - Grow.Time + 10) - now;
+	Grow.Delay = (WeakenOne.EndTime - Grow.Time + (1 * delayScale)) - now;
 	Grow.EndTime = now + Grow.Delay + Grow.Time;
 
-	WeakenTwo.Delay = (WeakenOne.EndTime - WeakenTwo.Time + 20) - now;
+	WeakenTwo.Delay = (WeakenOne.EndTime - WeakenTwo.Time + (2 * delayScale)) - now;
 	WeakenTwo.EndTime = now + WeakenTwo.Delay + WeakenTwo.Time;
 
-	if (WeakenOne.Threads > 0 &&
-			WeakenTwo.Threads > 0 &&
+	if (Hack.Threads > 0 && 
+			WeakenOne.Threads > 0 &&
 			Grow.Threads > 0 &&
-			Hack.Threads > 0)
+			WeakenTwo.Threads > 0)
 	{
 		let orders = [];
 		orders.push(WeakenOne);
@@ -158,7 +156,7 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 		orders.push(Hack);
 
 		let totalCost = WeakenOne.Cost + WeakenTwo.Cost + Grow.Cost + Hack.Cost;
-		let endTime = now + WeakenOne.Time + 20;
+		let endTime = now + WeakenOne.Time + (2 * delayScale);
 
 		let batch =
 		{
@@ -267,7 +265,7 @@ function BatchGrowOrder(ns, now, target, money, growThresh, scale)
 }
 
 /** @param {NS} ns */
-function SendBatch(ns, batch)
+function SendBatch(ns, batch, scale)
 {
 	let availableCount = AvailableCount();
 	for (let i = 0; i < availableCount; i++)
@@ -275,17 +273,17 @@ function SendBatch(ns, batch)
 		let host = available_servers[i];
 		if (ns.serverExists(host))
 		{
-			//Factor in cost of running the RunBatch.js itself
-			let runBatchScriptCost = GetCost(ns, "/Hax/RunBatch.js", 1);
-			let totalCost = batch.Cost + runBatchScriptCost;
+			batch.Host = host;
 
-			let availableRam = AvailableRam(ns, host);
-			if (availableRam >= totalCost)
+			let isBatchRunning = IsBatchRunning(batch);
+			if (!isBatchRunning)
 			{
-				batch.Host = host;
+				//Factor in cost of running the RunBatch.js itself
+				let runBatchScriptCost = GetCost(ns, "/Hax/RunBatch.js", 1);
+				let totalCost = batch.Cost + runBatchScriptCost;
 
-				let isBatchRunning = IsBatchRunning(batch);
-				if (!isBatchRunning)
+				let availableRam = AvailableRam(ns, host);
+				if (availableRam >= totalCost)
 				{
 					let str = JSON.stringify(batch);
 					let pid = ns.exec("/Hax/RunBatch.js", host, 1, str);
@@ -385,10 +383,13 @@ function WeakenTarget(ns, target, security, minSecurity)
 					let weakenRunning = IsWeakenRunning(weaken);
 					if (!weakenRunning)
 					{
-						ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
-						weaken_running.push(weaken);
-
-						t = threadsRequired - t + 1;
+						let pid = ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
+						if (pid > 0)
+						{
+							weaken.Pid = pid;
+							weaken_running.push(weaken);
+							t = threadsRequired - t + 1;
+						}
 
 						break;
 					}
@@ -423,6 +424,7 @@ function WeakenOrder(ns, delay, target, threads)
 
 	let order =
 	{
+		Pid: 0,
 		Host: "",
 		Target: target,
 		Delay: delay,
@@ -527,10 +529,13 @@ function GrowTarget(ns, target, money, growThresh)
 					let growRunning = IsGrowRunning(grow);
 					if (!growRunning)
 					{
-						ns.exec(grow.Script, grow.Host, grow.Threads, grow.Target, grow.Delay);
-						grow_running.push(grow);
-
-						t = threadsRequired - t + 1;
+						let pid = ns.exec(grow.Script, grow.Host, grow.Threads, grow.Target, grow.Delay);
+						if (pid > 0)
+						{
+							grow.Pid = pid;
+							grow_running.push(grow);
+							t = threadsRequired - t + 1;
+						}
 
 						break;
 					}
@@ -567,6 +572,7 @@ function GrowOrder(ns, delay, target, threads)
 
 	let order =
 	{
+		Pid: 0,
 		Host: "",
 		Target: target,
 		Delay: delay,
@@ -683,7 +689,8 @@ function AvailableRam(ns, host)
 	return ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
 }
 
-function Maintenance()
+/** @param {NS} ns */
+function Maintenance(ns)
 {
 	let now = Date.now();
 
@@ -700,8 +707,18 @@ function Maintenance()
 	for (let i = 0; i < grow_running.length; i++)
 	{
 		let grow = grow_running[i];
-		if (now >= grow.EndTime)
+
+		let money = ns.getServerMoneyAvailable(grow.Target);
+		let maxMoney = ns.getServerMaxMoney(grow.Target);
+
+		if (now >= grow.EndTime ||
+				money >= maxMoney)
 		{
+			if (money >= maxMoney)
+			{
+				ns.kill(grow.Pid);
+			}
+
 			grow_running.splice(i, 1);
 			i--;
 		}
@@ -710,8 +727,18 @@ function Maintenance()
 	for (let i = 0; i < weaken_running.length; i++)
 	{
 		let weaken = weaken_running[i];
-		if (now >= weaken.EndTime)
+
+		let security = ns.getServerSecurityLevel(weaken.Target);
+		let minSecurity = ns.getServerMinSecurityLevel(weaken.Target);
+
+		if (now >= weaken.EndTime ||
+				security <= minSecurity)
 		{
+			if (security <= minSecurity)
+			{
+				ns.kill(weaken.Pid);
+			}
+			
 			weaken_running.splice(i, 1);
 			i--;
 		}
@@ -723,9 +750,10 @@ function StopGrow(ns, target)
 {
 	for (let i = 0; i < grow_running.length; i++)
 	{
-		if (grow_running[i].Target == target)
+		let grow = grow_running[i];
+		if (grow.Target == target)
 		{
-			ns.scriptKill("/Hax/Grow.js", target);
+			ns.kill(grow.Pid);
 			grow_running.splice(i, 1);
 			i--;
 		}
@@ -737,9 +765,10 @@ function StopWeaken(ns, target)
 {
 	for (let i = 0; i < weaken_running.length; i++)
 	{
-		if (weaken_running[i].Target == target)
+		let weaken = weaken_running[i];
+		if (weaken.Target == target)
 		{
-			ns.scriptKill("/Hax/Weaken.js", target);
+			ns.kill(weaken.Pid);
 			weaken_running.splice(i, 1);
 			i--;
 		}
