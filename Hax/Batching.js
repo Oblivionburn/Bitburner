@@ -6,7 +6,7 @@ let targets = [];
 let batches_running = [];
 let grow_running = [];
 let weaken_running = [];
-let growThreshFactor = 0.1;
+let threshFactor = 0.1;
 let body = "";
 let delayScale = 10;
 
@@ -115,15 +115,12 @@ function Batching(ns, targets)
 /** @param {NS} ns */
 function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 {
-	let growThresh = maxMoney * growThreshFactor;
-
 	let Hack = BatchHackOrder(ns, now, target, maxMoney, scale);
 	let weakenOneSecurity = security + Hack.SecurityDiff;
-	let moneyStolen = growThresh * scale;
 
 	let WeakenOne = BatchWeakenOrder(ns, 0, now, target, weakenOneSecurity, minSecurity, scale);
 
-	let Grow = BatchGrowOrder(ns, now, target, maxMoney - moneyStolen, growThresh, scale);
+	let Grow = BatchGrowOrder(ns, now, target, maxMoney - Hack.MoneyStolen, maxMoney, scale);
 
 	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff;
 	if (weakenTwoSecurity < minSecurity)
@@ -178,11 +175,9 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 /** @param {NS} ns */
 function BatchHackOrder(ns, now, target, maxMoney, scale)
 {
-	let growThresh = maxMoney * growThreshFactor;
-
 	let script = "/Hax/Hack.js";
-	let threads = Math.ceil(ns.hackAnalyzeThreads(target, growThresh) * scale);
-	let percentStolen = ns.hackAnalyze(target);
+	let threads = Math.ceil(ns.hackAnalyzeThreads(target, maxMoney * threshFactor) * scale);
+	let moneyStolen = ns.hackAnalyze(target) * threads;
 	let securityDiff = ns.hackAnalyzeSecurity(threads, target);
 	let time = ns.getHackTime(target);
 	let cost = GetCost(ns, script, threads);
@@ -199,7 +194,7 @@ function BatchHackOrder(ns, now, target, maxMoney, scale)
 		Script: script,
 		Threads: threads,
 		SecurityDiff: securityDiff,
-		PercentStolen: percentStolen
+		MoneyStolen: moneyStolen
 	}
 
 	return order;
@@ -234,16 +229,16 @@ function BatchWeakenOrder(ns, delay, now, target, security, minSecurity, scale)
 }
 
 /** @param {NS} ns */
-function BatchGrowOrder(ns, now, target, money, growThresh, scale)
+function BatchGrowOrder(ns, now, target, money, maxMoney, scale)
 {
-	let growMulti = growThresh;
+	let growMulti = maxMoney;
 	if (money > 0)
 	{
-		growMulti = growThresh / money;
+		growMulti = maxMoney / money;
 	}
 
 	let script = "/Hax/Grow.js";
-	let threads = Math.ceil(ns.growthAnalyze(target, 1 + Math.ceil(growMulti), 1) * scale);
+	let threads = Math.ceil(ns.growthAnalyze(target, growMulti, 1) * scale);
 	let securityDiff = ns.growthAnalyzeSecurity(threads);
 	let time = ns.getGrowTime(target);
 	let cost = GetCost(ns, script, threads);
