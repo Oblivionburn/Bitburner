@@ -238,7 +238,7 @@ function BatchGrowOrder(ns, now, target, money, maxMoney, scale)
 	}
 
 	let script = "/Hax/Grow.js";
-	let threads = Math.ceil(ns.growthAnalyze(target, growMulti, 1) * scale);
+	let threads = Math.ceil(ns.growthAnalyze(target, Math.ceil(growMulti), 1) * scale);
 	let securityDiff = ns.growthAnalyzeSecurity(threads);
 	let time = ns.getGrowTime(target);
 	let cost = GetCost(ns, script, threads);
