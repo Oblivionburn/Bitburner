@@ -91,13 +91,14 @@ function Batching(ns, targets)
 					}
 				}
 			}
-			else if (batchCount == 0)
+			else
 			{
 				if (security > minSecurity)
 				{
 					WeakenTarget(ns, target, security, minSecurity);
 				}
-				else if (money < maxMoney)
+				else if (money < maxMoney &&
+								 batchCount == 0)
 				{
 					StopWeaken(ns, target);
 					GrowTarget(ns, target, money, maxMoney);
@@ -560,7 +561,7 @@ function GrowThreadsRequired(ns, target, money, growThresh)
 		growMulti = growThresh / money;
 	}
 
-	return Math.ceil(ns.growthAnalyze(target, 1 + Math.ceil(growMulti), 1));
+	return Math.ceil(ns.growthAnalyze(target, growMulti, 1));
 }
 
 /** @param {NS} ns */
