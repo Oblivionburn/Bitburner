@@ -58,6 +58,12 @@ async function UpdateContainer(ns, container)
 				wait = true;
 				GenMenu_Main(container);
 
+				eval('document').getElementById("targets").addEventListener("click", function()
+				{
+					wait = false;
+					current_menu = "targets";
+				});
+
 				eval('document').getElementById("servers").addEventListener("click", function()
 				{
 					wait = false;
@@ -75,6 +81,26 @@ async function UpdateContainer(ns, container)
 					wait = false;
 					current_menu = "shutdown";
 				});
+			}
+			else if (current_menu == "targets")
+			{
+				let targets = await GenMenu_Targets(ns);
+				eval('document').getElementById("content").innerHTML = targets;
+				
+				let table = eval('document').getElementById("targetList");
+				if (table)
+				{
+					for (let i = 0; i < table.rows.length; i++)
+					{
+						let row = table.rows[i];
+						row.onclick = function()
+						{
+							wait = false;
+							let serverName = this.getElementsByTagName("td")[1].innerHTML;
+							current_menu = "details_" + serverName;
+						};
+					}
+				}
 			}
 			else if (current_menu == "servers")
 			{
@@ -170,8 +196,9 @@ function GenMenu_Main(container)
 		<tr>
 			<td style="vertical-align: top; max-width: 100px">
 				<div>
+					<button id="targets" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Targets</button>
 					<button id="servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Servers</button>
-					<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Messages</button>
+					<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Traffic</button>
 					<button id="shutdown" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Shutdown</button>
 				</div>
 			</td>
@@ -332,6 +359,148 @@ async function GenMenu_Servers(ns)
 	return content;
 }
 
+async function GenMenu_Targets(ns)
+{
+	let table = `
+		<style>
+			table.targetList tr:hover td {background-color: #454545;}
+		</style>
+		<table id="targetList" class="targetList" border=1 style="width: 100%; height: 100%">`;
+
+	body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 80px;">Batching</th>
+				<th style="text-align: left; max-width: 100px;">Name</th>
+				<th style="text-align: left; min-width: 80px;">Weakening</th>
+				<th style="text-align: left; min-width: 80px;">Security</th>
+				<th style="text-align: left; min-width: 100px;">Min Security</th>
+				<th style="text-align: left; min-width: 80px;">Growing</th>
+				<th style="text-align: left; max-width: 260px;">Money</th>
+				<th style="text-align: left; max-width: 260px;">Max Money</th>
+			</tr>
+		</thead>`;
+
+	let servers = await HDD.Read(ns, "targets");
+	if (servers != null)
+	{
+		servers.sort((a, b) =>
+			b.Rooted - a.Rooted ||
+			a.MaxMoney - b.MaxMoney || 
+			a.HackLevel - b.HackLevel
+		);
+
+		let count = servers.length;
+		for (let i = 0; i < count; i++)
+		{
+			let server = servers[i];
+
+			let money = ns.getServerMoneyAvailable(server.Name);
+			let security = ns.getServerSecurityLevel(server.Name);
+
+			let securityColor = "LimeGreen";
+			if (security > server.MinSecurity * 2)
+			{
+				securityColor = "Red";
+			}
+			else if (security > server.MinSecurity)
+			{
+				securityColor = "Yellow";
+			}
+
+			let moneyColor = "LimeGreen";
+			if (money < server.MaxMoney / 10)
+			{
+				moneyColor = "Red";
+			}
+			else if (money < server.MaxMoney)
+			{
+				moneyColor = "Yellow";
+			}
+
+			let batchColor = "Black";
+			let batchCount = 0;
+			let batches_running = await HDD.Read(ns, "batches_running");
+			if (batches_running)
+			{
+				for (let b = 0; b < batches_running.length; b++)
+				{
+					let batch = batches_running[b];
+					if (batch.Target == server.Name)
+					{
+						batchCount++;
+					}
+				}
+
+				if (batchCount > 0)
+				{
+					batchColor = "LimeGreen";
+				}
+			}
+
+			let weakenColor = "Black";
+			let weakenCount = 0;
+			let weaken_running = await HDD.Read(ns, "weaken_running");
+			if (weaken_running)
+			{
+				for (let w = 0; w < weaken_running.length; w++)
+				{
+					let weaken = weaken_running[w];
+					if (weaken.Target == server.Name)
+					{
+						weakenCount++;
+					}
+				}
+
+				if (weakenCount > 0)
+				{
+					weakenColor = "LimeGreen";
+				}
+			}
+
+			let growColor = "Black";
+			let growCount = 0;
+			let grow_running = await HDD.Read(ns, "grow_running");
+			if (grow_running)
+			{
+				for (let g = 0; g < grow_running.length; g++)
+				{
+					let grow = grow_running[g];
+					if (grow.Target == server.Name)
+					{
+						growCount++;
+					}
+				}
+
+				if (growCount > 0)
+				{
+					growColor = "LimeGreen";
+				}
+			}
+
+			body += `
+				<tr>
+					<td style="color:${batchColor};">${batchCount}</td>
+					<td style="color:White;">${server.Name}</td>
+					<td style="color:${weakenColor};">${weakenCount}</td>
+					<td style="color:${securityColor};">${security.toFixed(2)}</td>
+					<td style="color:White;">${server.MinSecurity.toFixed(0)}</td>
+					<td style="color:${growColor};">${growCount}</td>
+					<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
+					<td style="color:LimeGreen;">$${server.MaxMoney.toLocaleString()}</td>
+				</tr>
+			`;
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}
+
 async function GenMenu_Details(ns, serverName)
 {
 	let content = serverName + " details here...";
@@ -347,7 +516,7 @@ async function GenMenu_Details(ns, serverName)
 			</tr>
 		</thead>`;
 
-	let servers = await HDD.Read(ns, "servers");
+	let servers = await HDD.Read(ns, "targets");
 	if (servers != null)
 	{
 		let server = null;

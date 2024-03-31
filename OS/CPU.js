@@ -21,8 +21,12 @@ export async function main(ns)
 	ns.clearLog();
 
 	servers = [];
+
 	available_servers = [];
+	await HDD.Write(ns, "available_servers", available_servers);
+
 	targets = [];
+	await HDD.Write(ns, "targets", targets);
 
 	batches_running = [];
 	await HDD.Write(ns, "batches_running", batches_running);
@@ -41,8 +45,8 @@ export async function main(ns)
 		//ns.resizeTail(440, 280);
 		servers = await HDD.Read(ns, "servers");
 
-		Get_AvailableServers();
-		GetTargets(ns);
+		await Get_AvailableServers(ns);
+		await GetTargets(ns);
 		await Batching(ns);
 		await GetMessages(ns);
 
@@ -51,7 +55,7 @@ export async function main(ns)
 }
 
 /** @param {NS} ns */
-function Get_AvailableServers()
+async function Get_AvailableServers(ns)
 {
 	available_servers = [];
 
@@ -72,10 +76,11 @@ function Get_AvailableServers()
 	}
 
 	available_servers.sort((a, b) => b.MaxRam - a.MaxRam);
+	await HDD.Write(ns, "available_servers", available_servers);
 }
 
 /** @param {NS} ns */
-function GetTargets(ns)
+async function GetTargets(ns)
 {
 	targets = [];
 
@@ -102,6 +107,7 @@ function GetTargets(ns)
 	}
 
 	targets.sort((a, b) => b.MaxMoney - a.MaxMoney || b.HackLevel - a.HackLevel);
+	await HDD.Write(ns, "targets", targets);
 }
 
 /** @param {NS} ns */
