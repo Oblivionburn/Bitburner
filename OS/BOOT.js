@@ -41,22 +41,15 @@ async function UpdateContainer(ns, container)
 				eval('document').getElementById("start").addEventListener("click", function()
 				{
 					wait = false;
-					current_menu = "start";
+					current_menu = "main";
 				});
-			}
-			else if (current_menu == "start")
-			{
-				ns.exec("/OS/NIC.js", "home");
-				ns.exec("/OS/BUS.js", "home");
-				ns.exec("/OS/CPU.js", "home");
-				
-				wait = false;
-				current_menu = "main";
 			}
 			else if (current_menu == "main")
 			{
 				wait = true;
 				GenMenu_Main(container);
+				
+				eval('document').getElementById("content").innerHTML = GenMenu_Start(ns);
 
 				eval('document').getElementById("targets").addEventListener("click", function()
 				{
@@ -127,6 +120,18 @@ async function UpdateContainer(ns, container)
 				let serverName = current_menu.substring(current_menu.indexOf("_") + 1, current_menu.length);
 				let details = await GenMenu_Details(ns, serverName);
 				eval('document').getElementById("content").innerHTML = details;
+
+				eval('document').getElementById("path").onclick = function()
+				{
+					wait = false;
+					current_menu = "path_" + serverName;
+				};
+			}
+			else if (current_menu.includes("path_"))
+			{
+				wait = true;
+				let serverName = current_menu.substring(current_menu.indexOf("_") + 1, current_menu.length);
+				eval('document').getElementById("content").innerHTML = "Path to " + serverName + ": " + Util.FindPath(ns, serverName);
 			}
 			else if (current_menu == "messages")
 			{
@@ -176,6 +181,31 @@ function GenMenu_Boot(container)
 
 	let content = table + body + final;
 	container.innerHTML = content;
+}
+
+function GenMenu_Start(ns)
+{
+	let table = `<table border=0 style="width: 100%; height: 100%">`;
+	body = "<tbody>";
+
+	body += `<tr><td>Running boot scripts...</td></tr>`;
+	body += `<tr><td>_______________________</td></tr>`;
+
+	ns.exec("/OS/NIC.js", "home");
+	body += `<tr><td>Started NIC API.</td></tr>`;
+
+	ns.exec("/OS/BUS.js", "home");
+	body += `<tr><td>Started BUS API.</td></tr>`;
+
+	ns.exec("/OS/CPU.js", "home");
+	body += `<tr><td>Started CPU API.</td></tr>`;
+
+	body += `<tr><td>_______________________</td></tr>`;
+	body += `<tr><td>Ready!</td></tr>`;
+	
+	let final = "</tbody></table>";
+
+	return table + body + final;
 }
 
 function GenMenu_Main(container)
@@ -516,7 +546,7 @@ async function GenMenu_Details(ns, serverName)
 			</tr>
 		</thead>`;
 
-	let servers = await HDD.Read(ns, "targets");
+	let servers = await HDD.Read(ns, "servers");
 	if (servers != null)
 	{
 		let server = null;
@@ -740,6 +770,12 @@ async function GenMenu_Details(ns, serverName)
 				<tr>
 					<td style="color:White;">Batching:</td>
 					<td style="color:${batchColor};">${batchCount} {${Util.msToTime(batchTime)}}</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Path:</td>
+					<td>
+						<button id="path" class="${server.Name}" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Get Path</button>
+					</td>
 				</tr>
 			`;
 
