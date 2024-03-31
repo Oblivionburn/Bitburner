@@ -14,14 +14,14 @@ export async function main(ns)
 	index = [];
 	servers = [];
 
-	await DeepScan(ns, "home");
-	await HDD.Write(ns, "servers", servers);
-
 	while (true)
 	{
+		await DeepScan(ns, "home");
+		await HDD.Write(ns, "servers", servers);
+
 		await PurchaseServers(ns);
 		await UpgradeServers(ns);
-		await ns.sleep(1);
+		await ns.sleep(100);
 	}
 }
 
