@@ -135,8 +135,39 @@ async function MenuSwitch(ns, container)
 			default:
 				if (current_menu.includes("details_"))
 				{
+					let serverName = GetServerName();
 					let servers = await HDD.Read(ns, "servers");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Details(servers, GetServerName());
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Details(servers, serverName);
+
+					let detailsTable = eval('document').getElementById("detailsList");
+					if (detailsTable)
+					{
+						for (let i = 0; i < detailsTable.rows.length; i++)
+						{
+							let row = detailsTable.rows[i];
+							row.onclick = function()
+							{
+								let fieldName = this.getElementsByTagName("td")[0].innerHTML;
+								switch (fieldName)
+								{
+									case "Weakening:":
+										menuSwitched = true;
+										current_menu = "weakening_" + serverName;
+										break;
+
+									case "Growing:":
+										menuSwitched = true;
+										current_menu = "growing_" + serverName;
+										break;
+
+									case "Batching:":
+										menuSwitched = true;
+										current_menu = "batching_" + serverName;
+										break;
+								}
+							};
+						}
+					}
 
 					let pathElement = eval('document').getElementById("path");
 					if (pathElement)
@@ -147,10 +178,40 @@ async function MenuSwitch(ns, container)
 							current_menu = "path_" + GetServerName();
 						};
 					}
+
+					let trafficElement = eval('document').getElementById("traffic");
+					if (trafficElement)
+					{
+						trafficElement.onclick = function()
+						{
+							menuSwitched = true;
+							current_menu = "traffic_" + GetServerName();
+						};
+					}
+				}
+				else if (current_menu.includes("weakening_"))
+				{
+					let weaken_running = await HDD.Read(ns, "weaken_running");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), weaken_running);
+				}
+				else if (current_menu.includes("growing_"))
+				{
+					let grow_running = await HDD.Read(ns, "grow_running");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), grow_running);
+				}
+				else if (current_menu.includes("batching_"))
+				{
+					let batches_running = await HDD.Read(ns, "batches_running");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Batching(GetServerName(), batches_running);
 				}
 				else if (current_menu.includes("path_"))
 				{
 					eval('document').getElementById("content").innerHTML = "Path to " + GetServerName() + ":<br/><br/>" + Util.FindPath(ns, GetServerName());
+				}
+				else if (current_menu.includes("traffic_"))
+				{
+					let messages = await BUS.GetMessage_Cache();
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Traffic(GetServerName(), messages);
 				}
 		}
 	}
@@ -185,6 +246,26 @@ async function UpdateContainer(ns, container)
 				if (current_menu.includes("details_"))
 				{
 					await UpdateMenu_Details(ns, GetServerName());
+				}
+				else if (current_menu.includes("weakening_"))
+				{
+					let weaken_running = await HDD.Read(ns, "weaken_running");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), weaken_running);
+				}
+				else if (current_menu.includes("growing_"))
+				{
+					let grow_running = await HDD.Read(ns, "grow_running");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), grow_running);
+				}
+				else if (current_menu.includes("batching_"))
+				{
+					let batches_running = await HDD.Read(ns, "batches_running");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Batching(GetServerName(), batches_running);
+				}
+				else if (current_menu.includes("traffic_"))
+				{
+					let messages = await BUS.GetMessage_Cache();
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Traffic(GetServerName(), messages);
 				}
 		}
 	}

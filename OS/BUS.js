@@ -44,7 +44,7 @@ async function GetMessages(ns)
 			let data = ns.readPort(i);
 			messages.push(data);
 
-			if (message_cache.length >= 200)
+			if (message_cache.length >= 5000)
 			{
 				message_cache.splice(0, 1);
 			}

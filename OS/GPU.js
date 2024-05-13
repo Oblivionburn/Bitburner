@@ -1,3 +1,5 @@
+import * as Util from "./OS/Apps/Util.js";
+
 export const colors = 
 {
 	red: "\u001b[31;1m",
@@ -392,7 +394,11 @@ export async function GenMenu_Details(servers, serverName)
 {
 	let content = serverName + " server not found!";
 
-	let table = `<table border=1 style="width: 400px; height: 100%">`;
+	let table = `
+		<style>
+			table.detailsList tr:hover td {background-color: #454545;}
+		</style>
+		<table id="detailsList" class="detailsList" border=1 style="width: 400px; height: 100%">`;
 	let body = "<tbody>";
 
 	let header = `
@@ -476,7 +482,13 @@ export async function GenMenu_Details(servers, serverName)
 				<tr>
 					<td style="color:White;">Path:</td>
 					<td>
-						<button id="path" class="${server.Name}" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Get Path</button>
+						<button id="path" class="${server.Name}_path" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Get Path</button>
+					</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Traffic:</td>
+					<td>
+						<button id="traffic" class="${server.Name}_traffic" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">View Traffic</button>
 					</td>
 				</tr>
 			`;
@@ -486,6 +498,200 @@ export async function GenMenu_Details(servers, serverName)
 		}
 	}
 
+	return content;
+}
+
+export async function GenMenu_Weakening(target, weaken_running)
+{
+	let table = `<table border=1 style="width: 1300px; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 100px;">Index</th>
+				<th style="text-align: left; min-width: 250px;">Host</th>
+				<th style="text-align: left; min-width: 250px;">Target</th>
+				<th style="text-align: left; min-width: 100px;">Threads</th>
+				<th style="text-align: left; min-width: 200px;">Run Time</th>
+				<th style="text-align: left; min-width: 200px;">Remaining Time</th>
+			</tr>
+		</thead>`;
+
+	if (weaken_running != null)
+	{
+		let now = Date.now();
+		let index = 0;
+
+		let count = weaken_running.length;
+		for (let i = 0; i < count; i++)
+		{
+			let weaken = weaken_running[i];
+			
+			if (weaken.Target == target)
+			{
+				let weakenTime = now;
+				let weakenTimeRemaining = weaken.EndTime - Date.now();
+				if (weakenTimeRemaining < weakenTime &&
+						weakenTimeRemaining > 0)
+				{
+					weakenTime = weakenTimeRemaining;
+				}
+
+				if (weakenTime == now)
+				{
+					weakenTime = 0;
+				}
+
+				body += `
+					<tr>
+						<td style="color:White;">${index}</td>
+						<td style="color:White;">${weaken.Host}</td>
+						<td style="color:White;">${weaken.Target}</td>
+						<td style="color:White;">${weaken.Threads}</td>
+						<td style="color:White;">${Util.msToTime(weaken.Time)}</td>
+						<td style="color:White;">${Util.msToTime(weakenTime)}</td>
+					</tr>
+				`;
+
+				index++;
+			}
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}
+
+export async function GenMenu_Growing(target, grow_running)
+{
+	let table = `<table border=1 style="width: 1300px; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 100px;">Index</th>
+				<th style="text-align: left; min-width: 250px;">Host</th>
+				<th style="text-align: left; min-width: 250px;">Target</th>
+				<th style="text-align: left; min-width: 100px;">Threads</th>
+				<th style="text-align: left; min-width: 200px;">Run Time</th>
+				<th style="text-align: left; min-width: 200px;">Remaining Time</th>
+			</tr>
+		</thead>`;
+
+	if (grow_running != null)
+	{
+		let now = Date.now();
+		let index = 0;
+
+		let count = grow_running.length;
+		for (let i = 0; i < count; i++)
+		{
+			let grow = grow_running[i];
+			
+			if (grow.Target == target)
+			{
+				let growTime = now;
+				let growTimeRemaining = grow.EndTime - Date.now();
+				if (growTimeRemaining < growTime &&
+						growTimeRemaining > 0)
+				{
+					growTime = growTimeRemaining;
+				}
+
+				if (growTime == now)
+				{
+					growTime = 0;
+				}
+
+				body += `
+					<tr>
+						<td style="color:White;">${index}</td>
+						<td style="color:White;">${grow.Host}</td>
+						<td style="color:White;">${grow.Target}</td>
+						<td style="color:White;">${grow.Threads}</td>
+						<td style="color:White;">${Util.msToTime(grow.Time)}</td>
+						<td style="color:White;">${Util.msToTime(growTime)}</td>
+					</tr>
+				`;
+
+				index++;
+			}
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}
+
+export async function GenMenu_Batching(target, batches_running)
+{
+	let table = `<table border=1 style="width: 1300px; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 100px;">Index</th>
+				<th style="text-align: left; min-width: 250px;">Host</th>
+				<th style="text-align: left; min-width: 100px;">Target</th>
+				<th style="text-align: left; min-width: 100px;">Cost</th>
+				<th style="text-align: left; min-width: 250px;">Start Time</th>
+				<th style="text-align: left; min-width: 250px;">End Time</th>
+				<th style="text-align: left; min-width: 250px;">Remaining Time</th>
+			</tr>
+		</thead>`;
+
+	if (batches_running != null)
+	{
+		let now = Date.now();
+		let index = 0;
+
+		let count = batches_running.length;
+		for (let i = 0; i < count; i++)
+		{
+			let batch = batches_running[i];
+			
+			if (batch.Target == target)
+			{
+				let batchTime = now;
+				let batchTimeRemaining = batch.EndTime - Date.now();
+				if (batchTimeRemaining < batchTime &&
+						batchTimeRemaining > 0)
+				{
+					batchTime = batchTimeRemaining;
+				}
+
+				if (batchTime == now)
+				{
+					batchTime = 0;
+				}
+
+				body += `
+					<tr>
+						<td style="color:White;">${index}</td>
+						<td style="color:White;">${batch.Host}</td>
+						<td style="color:White;">${batch.Target}</td>
+						<td style="color:White;">${batch.Cost} RAM</td>
+						<td style="color:White;">${new Date(batch.StartTime).toLocaleString()}</td>
+						<td style="color:White;">${new Date(batch.EndTime).toLocaleString()}</td>
+						<td style="color:White;">${Util.msToTime(batchTime)}</td>
+					</tr>
+				`;
+
+				index++;
+			}
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
 	return content;
 }
 
@@ -527,6 +733,56 @@ export async function GenMenu_Messages(messages)
 					<td style="color:${stateColor};">${message.State}</td>
 				</tr>
 			`;
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}
+
+export async function GenMenu_Traffic(target, messages)
+{
+	let table = `<table border=1 style="width: 100%; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 260px;">DateTime</th>
+				<th style="text-align: left; min-width: 200px;">Host</th>
+				<th style="text-align: left; min-width: 200px;">Order</th>
+				<th style="text-align: left; min-width: 200px;">Target</th>
+				<th style="text-align: left; min-width: 600px;">State</th>
+			</tr>
+		</thead>`;
+
+	if (messages != null)
+	{
+		let count = messages.length;
+		for (let i = count - 1; i > 0; i--)
+		{
+			let message = messages[i];
+
+			if (message.Target == target)
+			{
+				let stateColor = "LimeGreen";
+				if (message.State.includes("Error"))
+				{
+					stateColor = "Red";
+				}
+
+				body += `
+					<tr>
+						<td style="color:White;">${message.DateTime}</td>
+						<td style="color:White;">${message.Host}</td>
+						<td style="color:White;">${message.Order}</td>
+						<td style="color:White;">${message.Target}</td>
+						<td style="color:${stateColor};">${message.State}</td>
+					</tr>
+				`;
+			}
 		}
 	}
 
