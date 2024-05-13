@@ -3,8 +3,7 @@ import * as GPU from "./OS/GPU.js";
 import * as HDD from "./OS/HDD.js";
 import * as BUS from "./OS/BUS.js";
 
-let wait = false;
-let body = "";
+let menuSwitched = false;
 let current_menu = "boot";
 
 /** @param {NS} ns */
@@ -13,16 +12,147 @@ export async function main(ns)
 	ns.disableLog("ALL");
 	ns.tail(ns.getScriptName(), "home");
 
-	wait = false;
-	body = "";
+	menuSwitched = true;
 	current_menu = "boot";
 
 	let container = GPU.injectContainer(ns, eval('document'));
 
 	while (true)
 	{
+		if (menuSwitched)
+		{
+			menuSwitched = false;
+			await MenuSwitch(ns, container);
+		}
+
 		await UpdateContainer(ns, container);
 		await ns.sleep(100);
+	}
+}
+
+/** @param {NS} ns */
+async function MenuSwitch(ns, container)
+{
+	if (container != null)
+	{
+		switch (current_menu)
+		{
+			case "boot":
+				await GPU.GenMenu_Boot(container);
+
+				eval('document').getElementById("start").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "main";
+				});
+				break;
+
+			case "main":
+				await GPU.GenMenu_Main(container);
+				
+				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Start(ns);
+
+				eval('document').getElementById("servers").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "servers";
+				});
+
+				eval('document').getElementById("targets").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "targets";
+				});
+
+				eval('document').getElementById("purchased_servers").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "purchased_servers";
+				});
+
+				eval('document').getElementById("messages").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "messages";
+				});
+
+				eval('document').getElementById("shutdown").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "shutdown";
+				});
+				break;
+
+			case "servers":
+				let servers = await HDD.Read(ns, "servers");
+				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Servers(servers);
+				
+				let serverTable = eval('document').getElementById("serverList");
+				if (serverTable)
+				{
+					for (let i = 0; i < serverTable.rows.length; i++)
+					{
+						let row = serverTable.rows[i];
+						row.onclick = function()
+						{
+							menuSwitched = true;
+							let serverName = this.getElementsByTagName("td")[1].innerHTML;
+							current_menu = "details_" + serverName;
+						};
+					}
+				}
+				break;
+
+			case "targets":
+				let targets = await HDD.Read(ns, "targets");
+				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Targets(targets);
+				
+				let targetTable = eval('document').getElementById("targetList");
+				if (targetTable)
+				{
+					for (let i = 0; i < targetTable.rows.length; i++)
+					{
+						let row = targetTable.rows[i];
+						row.onclick = function()
+						{
+							menuSwitched = true;
+							let serverName = this.getElementsByTagName("td")[1].innerHTML;
+							current_menu = "details_" + serverName;
+						};
+					}
+				}
+				break;
+
+			case "purchased_servers":
+				let available_servers = await HDD.Read(ns, "available_servers");
+				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Purchased(ns, available_servers);
+				break;
+
+			case "shutdown":
+				await Shutdown(ns);
+				break;
+
+			default:
+				if (current_menu.includes("details_"))
+				{
+					let servers = await HDD.Read(ns, "servers");
+					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Details(servers, GetServerName());
+
+					let pathElement = eval('document').getElementById("path");
+					if (pathElement)
+					{
+						pathElement.onclick = function()
+						{
+							menuSwitched = true;
+							current_menu = "path_" + GetServerName();
+						};
+					}
+				}
+				else if (current_menu.includes("path_"))
+				{
+					eval('document').getElementById("content").innerHTML = "Path to " + GetServerName() + ":<br/><br/>" + Util.FindPath(ns, GetServerName());
+				}
+		}
 	}
 }
 
@@ -31,255 +161,41 @@ async function UpdateContainer(ns, container)
 {
 	if (container != null)
 	{
-		if (!wait)
+		switch (current_menu)
 		{
-			if (current_menu == "boot")
-			{
-				wait = true;
-				GenMenu_Boot(container);
+			case "servers":
+				await UpdateMenu_Servers(ns)
+				break;
 
-				eval('document').getElementById("start").addEventListener("click", function()
-				{
-					wait = false;
-					current_menu = "main";
-				});
-			}
-			else if (current_menu == "main")
-			{
-				wait = true;
-				GenMenu_Main(container);
-				
-				eval('document').getElementById("content").innerHTML = GenMenu_Start(ns);
+			case "targets":
+				await UpdateMenu_Targets(ns)
+				break;
 
-				eval('document').getElementById("targets").addEventListener("click", function()
-				{
-					wait = false;
-					current_menu = "targets";
-				});
+			case "purchased_servers":
+				let available_servers = await HDD.Read(ns, "available_servers");
+				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Purchased(ns, available_servers);
+				break;
 
-				eval('document').getElementById("servers").addEventListener("click", function()
-				{
-					wait = false;
-					current_menu = "servers";
-				});
+			case "messages":
+				let messages = await BUS.GetMessage_Cache();
+				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Messages(messages);
+				break;
 
-				eval('document').getElementById("messages").addEventListener("click", function()
+			default:
+				if (current_menu.includes("details_"))
 				{
-					wait = false;
-					current_menu = "messages";
-				});
-
-				eval('document').getElementById("shutdown").addEventListener("click", function()
-				{
-					wait = false;
-					current_menu = "shutdown";
-				});
-			}
-			else if (current_menu == "targets")
-			{
-				let targets = await GenMenu_Targets(ns);
-				eval('document').getElementById("content").innerHTML = targets;
-				
-				let table = eval('document').getElementById("targetList");
-				if (table)
-				{
-					for (let i = 0; i < table.rows.length; i++)
-					{
-						let row = table.rows[i];
-						row.onclick = function()
-						{
-							wait = false;
-							let serverName = this.getElementsByTagName("td")[1].innerHTML;
-							current_menu = "details_" + serverName;
-						};
-					}
+					await UpdateMenu_Details(ns, GetServerName());
 				}
-			}
-			else if (current_menu == "servers")
-			{
-				let servers = await GenMenu_Servers(ns);
-				eval('document').getElementById("content").innerHTML = servers;
-				
-				let table = eval('document').getElementById("serverList");
-				if (table)
-				{
-					for (let i = 0; i < table.rows.length; i++)
-					{
-						let row = table.rows[i];
-						row.onclick = function()
-						{
-							wait = false;
-							let serverName = this.getElementsByTagName("td")[1].innerHTML;
-							current_menu = "details_" + serverName;
-						};
-					}
-				}
-			}
-			else if (current_menu.includes("details_"))
-			{
-				let serverName = current_menu.substring(current_menu.indexOf("_") + 1, current_menu.length);
-				let details = await GenMenu_Details(ns, serverName);
-				eval('document').getElementById("content").innerHTML = details;
-
-				eval('document').getElementById("path").onclick = function()
-				{
-					wait = false;
-					current_menu = "path_" + serverName;
-				};
-			}
-			else if (current_menu.includes("path_"))
-			{
-				wait = true;
-				let serverName = current_menu.substring(current_menu.indexOf("_") + 1, current_menu.length);
-				eval('document').getElementById("content").innerHTML = "Path to " + serverName + ": " + Util.FindPath(ns, serverName);
-			}
-			else if (current_menu == "messages")
-			{
-				let messages = await GenMenu_Messages();
-				eval('document').getElementById("content").innerHTML = messages;
-			}
-			else if (current_menu == "shutdown")
-			{
-				await Shutdown(ns);
-			}
 		}
 	}
 }
 
-function GenMenu_Boot(container)
+/** @param {NS} ns */
+async function UpdateMenu_Servers(ns)
 {
-	let table = `<table border=0 style="width: 100%; height: 100%">`;
-	body = "<tbody>";
-
-	body += `
-		<tr>
-			<td></td>
-			<td>
-				<div style="color:White; font-size: 64px; font-weight: bold; text-align: center; height:60px; overflow:hidden;">Hack OS</div>
-			</td>
-			<td></td>
-		</tr>
-		<tr>
-			<td></td>
-			<td>
-				<div style="margin:0 auto; text-align:center;">
-					<button id="start" style="font-size: 18px; text-align: center; height: 100px; width: 200px;">Start</button>
-				</div>
-			</td>
-			<td></td>
-		</tr>
-		<tr>
-			<td></td>
-			<td>
-				<div style="color:White; text-align: center; height:20px; overflow:hidden;"></div>
-			</td>
-			<td></td>
-		</tr>
-	`;
-
-	let final = "</tbody></table>";
-
-	let content = table + body + final;
-	container.innerHTML = content;
-}
-
-function GenMenu_Start(ns)
-{
-	let table = `<table border=0 style="width: 100%; height: 100%">`;
-	body = "<tbody>";
-
-	body += `<tr><td>Running boot scripts...</td></tr>`;
-	body += `<tr><td>_______________________</td></tr>`;
-
-	ns.exec("/OS/NIC.js", "home");
-	body += `<tr><td>Started NIC API.</td></tr>`;
-
-	ns.exec("/OS/BUS.js", "home");
-	body += `<tr><td>Started BUS API.</td></tr>`;
-
-	ns.exec("/OS/CPU.js", "home");
-	body += `<tr><td>Started CPU API.</td></tr>`;
-
-	body += `<tr><td>_______________________</td></tr>`;
-	body += `<tr><td>Ready!</td></tr>`;
-	
-	let final = "</tbody></table>";
-
-	return table + body + final;
-}
-
-function GenMenu_Main(container)
-{
-	let table = `<table border=1 style="width: 100%; height: 100%">`;
-	body = "<tbody>";
-
-	let header = `
-		<thead>
-			<tr style="color:DarkGray;">
-				<th style="max-width: 100px">Menu</th>
-				<th></th>
-				<th></th>
-			</tr>
-		</thead>`;
-
-	body += `
-		<tr>
-			<td style="vertical-align: top; max-width: 100px">
-				<div>
-					<button id="targets" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Targets</button>
-					<button id="servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Servers</button>
-					<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Traffic</button>
-					<button id="shutdown" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Shutdown</button>
-				</div>
-			</td>
-			<td style="vertical-align: top; min-width:1290px; overflow:hidden;">
-				<div id="content"></div>
-			</td>
-			<td>
-				<div style="max-width:20px; overflow:hidden;"></div>
-			</td>
-		</tr>
-	`;
-
-	let final = "</tbody></table>";
-
-	let content = table + header + body + final;
-	container.innerHTML = content;
-}
-
-async function GenMenu_Servers(ns)
-{
-	let table = `
-		<style>
-			table.serverList tr:hover td {background-color: #454545;}
-		</style>
-		<table id="serverList" class="serverList" border=1 style="width: 100%; height: 100%">`;
-
-	body = "<tbody>";
-
-	let header = `
-		<thead>
-			<tr style="color:DarkGray;">
-				<th style="text-align: left; min-width: 80px;">Batching</th>
-				<th style="text-align: left; max-width: 100px;">Name</th>
-				<th style="text-align: left; min-width: 80px;">Weakening</th>
-				<th style="text-align: left; min-width: 80px;">Security</th>
-				<th style="text-align: left; min-width: 100px;">Min Security</th>
-				<th style="text-align: left; min-width: 80px;">Growing</th>
-				<th style="text-align: left; max-width: 260px;">Money</th>
-				<th style="text-align: left; max-width: 260px;">Max Money</th>
-			</tr>
-		</thead>`;
-
 	let servers = await HDD.Read(ns, "servers");
 	if (servers != null)
 	{
-		servers.sort((a, b) =>
-			b.Rooted - a.Rooted ||
-			a.MaxMoney - b.MaxMoney || 
-			a.HackLevel - b.HackLevel
-		);
-
 		let count = servers.length;
 		for (let i = 0; i < count; i++)
 		{
@@ -288,140 +204,71 @@ async function GenMenu_Servers(ns)
 			let money = ns.getServerMoneyAvailable(server.Name);
 			let security = ns.getServerSecurityLevel(server.Name);
 
-			let securityColor = "LimeGreen";
-			if (security > server.MinSecurity * 2)
+			let batchCountElement = eval('document').getElementById(`${server.Name}_batchCount`)
+			if (batchCountElement)
 			{
-				securityColor = "Red";
+				let batchCount = await GetBatchCount(ns, server.Name);
+				batchCountElement.style.color = GetBatchColor(batchCount);
+				batchCountElement.innerHTML = batchCount;
 			}
-			else if (security > server.MinSecurity)
+			else
 			{
-				securityColor = "Yellow";
-			}
-
-			let moneyColor = "LimeGreen";
-			if (money < server.MaxMoney / 10)
-			{
-				moneyColor = "Red";
-			}
-			else if (money < server.MaxMoney)
-			{
-				moneyColor = "Yellow";
+				//A purchased server name probably changed, so refresh menu
+				menuSwitched = true;
+				break;
 			}
 
-			let batchColor = "Black";
-			let batchCount = 0;
-			let batches_running = await HDD.Read(ns, "batches_running");
-			if (batches_running)
+			let weakenCountElement = eval('document').getElementById(`${server.Name}_weakenCount`)
+			if (weakenCountElement)
 			{
-				for (let b = 0; b < batches_running.length; b++)
-				{
-					let batch = batches_running[b];
-					if (batch.Target == server.Name)
-					{
-						batchCount++;
-					}
-				}
-
-				if (batchCount > 0)
-				{
-					batchColor = "LimeGreen";
-				}
+				let weakenCount = await GetWeakenCount(ns, server.Name);
+				weakenCountElement.style.color = GetWeakenColor(weakenCount);
+				weakenCountElement.innerHTML = weakenCount;
 			}
 
-			let weakenColor = "Black";
-			let weakenCount = 0;
-			let weaken_running = await HDD.Read(ns, "weaken_running");
-			if (weaken_running)
+			let securityElement = eval('document').getElementById(`${server.Name}_security`)
+			if (securityElement)
 			{
-				for (let w = 0; w < weaken_running.length; w++)
-				{
-					let weaken = weaken_running[w];
-					if (weaken.Target == server.Name)
-					{
-						weakenCount++;
-					}
-				}
-
-				if (weakenCount > 0)
-				{
-					weakenColor = "LimeGreen";
-				}
+				securityElement.style.color = GetSecurityColor(security, server.MinSecurity);
+				securityElement.innerHTML = security.toFixed(2);
 			}
 
-			let growColor = "Black";
-			let growCount = 0;
-			let grow_running = await HDD.Read(ns, "grow_running");
-			if (grow_running)
+			let growCountElement = eval('document').getElementById(`${server.Name}_growCount`)
+			if (growCountElement)
 			{
-				for (let g = 0; g < grow_running.length; g++)
-				{
-					let grow = grow_running[g];
-					if (grow.Target == server.Name)
-					{
-						growCount++;
-					}
-				}
-
-				if (growCount > 0)
-				{
-					growColor = "LimeGreen";
-				}
+				let growCount = await GetGrowCount(ns, server.Name);
+				growCountElement.style.color = GetGrowColor(growCount);
+				growCountElement.innerHTML = growCount;
 			}
 
-			body += `
-				<tr>
-					<td style="color:${batchColor};">${batchCount}</td>
-					<td style="color:White;">${server.Name}</td>
-					<td style="color:${weakenColor};">${weakenCount}</td>
-					<td style="color:${securityColor};">${security.toFixed(2)}</td>
-					<td style="color:White;">${server.MinSecurity.toFixed(0)}</td>
-					<td style="color:${growColor};">${growCount}</td>
-					<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
-					<td style="color:LimeGreen;">$${server.MaxMoney.toLocaleString()}</td>
-				</tr>
-			`;
+			let moneyElement = eval('document').getElementById(`${server.Name}_money`)
+			if (moneyElement)
+			{
+				moneyElement.style.color = GetMoneyColor(money, server.MaxMoney);
+				moneyElement.innerHTML = "$" + money.toLocaleString();
+			}
+
+			let minSecurityElement = eval('document').getElementById(`${server.Name}_minSecurity`)
+			if (minSecurityElement)
+			{
+				minSecurityElement.innerHTML = server.MinSecurity.toFixed(0);
+			}
+
+			let maxMoneyElement = eval('document').getElementById(`${server.Name}_maxMoney`)
+			if (maxMoneyElement)
+			{
+				maxMoneyElement.innerHTML = "$" + server.MaxMoney.toLocaleString();
+			}
 		}
 	}
-
-	let final = "</tbody></table>";
-
-	let content = table + header + body + final;
-	return content;
 }
 
-async function GenMenu_Targets(ns)
+/** @param {NS} ns */
+async function UpdateMenu_Targets(ns)
 {
-	let table = `
-		<style>
-			table.targetList tr:hover td {background-color: #454545;}
-		</style>
-		<table id="targetList" class="targetList" border=1 style="width: 100%; height: 100%">`;
-
-	body = "<tbody>";
-
-	let header = `
-		<thead>
-			<tr style="color:DarkGray;">
-				<th style="text-align: left; min-width: 80px;">Batching</th>
-				<th style="text-align: left; max-width: 100px;">Name</th>
-				<th style="text-align: left; min-width: 80px;">Weakening</th>
-				<th style="text-align: left; min-width: 80px;">Security</th>
-				<th style="text-align: left; min-width: 100px;">Min Security</th>
-				<th style="text-align: left; min-width: 80px;">Growing</th>
-				<th style="text-align: left; max-width: 260px;">Money</th>
-				<th style="text-align: left; max-width: 260px;">Max Money</th>
-			</tr>
-		</thead>`;
-
 	let servers = await HDD.Read(ns, "targets");
 	if (servers != null)
 	{
-		servers.sort((a, b) =>
-			b.Rooted - a.Rooted ||
-			a.MaxMoney - b.MaxMoney || 
-			a.HackLevel - b.HackLevel
-		);
-
 		let count = servers.length;
 		for (let i = 0; i < count; i++)
 		{
@@ -430,122 +277,62 @@ async function GenMenu_Targets(ns)
 			let money = ns.getServerMoneyAvailable(server.Name);
 			let security = ns.getServerSecurityLevel(server.Name);
 
-			let securityColor = "LimeGreen";
-			if (security > server.MinSecurity * 2)
+			let batchCountElement = eval('document').getElementById(`${server.Name}_batchCount`)
+			if (batchCountElement)
 			{
-				securityColor = "Red";
-			}
-			else if (security > server.MinSecurity)
-			{
-				securityColor = "Yellow";
+				let batchCount = await GetBatchCount(ns, server.Name);
+				batchCountElement.style.color = GetBatchColor(batchCount);
+				batchCountElement.innerHTML = batchCount;
 			}
 
-			let moneyColor = "LimeGreen";
-			if (money < server.MaxMoney / 10)
+			let weakenCountElement = eval('document').getElementById(`${server.Name}_weakenCount`)
+			if (weakenCountElement)
 			{
-				moneyColor = "Red";
-			}
-			else if (money < server.MaxMoney)
-			{
-				moneyColor = "Yellow";
+				let weakenCount = await GetWeakenCount(ns, server.Name);
+				weakenCountElement.style.color = GetWeakenColor(weakenCount);
+				weakenCountElement.innerHTML = weakenCount;
 			}
 
-			let batchColor = "Black";
-			let batchCount = 0;
-			let batches_running = await HDD.Read(ns, "batches_running");
-			if (batches_running)
+			let securityElement = eval('document').getElementById(`${server.Name}_security`)
+			if (securityElement)
 			{
-				for (let b = 0; b < batches_running.length; b++)
-				{
-					let batch = batches_running[b];
-					if (batch.Target == server.Name)
-					{
-						batchCount++;
-					}
-				}
-
-				if (batchCount > 0)
-				{
-					batchColor = "LimeGreen";
-				}
+				securityElement.style.color = GetSecurityColor(security, server.MinSecurity);
+				securityElement.innerHTML = security.toFixed(2);
 			}
 
-			let weakenColor = "Black";
-			let weakenCount = 0;
-			let weaken_running = await HDD.Read(ns, "weaken_running");
-			if (weaken_running)
+			let growCountElement = eval('document').getElementById(`${server.Name}_growCount`)
+			if (growCountElement)
 			{
-				for (let w = 0; w < weaken_running.length; w++)
-				{
-					let weaken = weaken_running[w];
-					if (weaken.Target == server.Name)
-					{
-						weakenCount++;
-					}
-				}
-
-				if (weakenCount > 0)
-				{
-					weakenColor = "LimeGreen";
-				}
+				let growCount = await GetGrowCount(ns, server.Name);
+				growCountElement.style.color = GetGrowColor(growCount);
+				growCountElement.innerHTML = growCount;
 			}
 
-			let growColor = "Black";
-			let growCount = 0;
-			let grow_running = await HDD.Read(ns, "grow_running");
-			if (grow_running)
+			let moneyElement = eval('document').getElementById(`${server.Name}_money`)
+			if (moneyElement)
 			{
-				for (let g = 0; g < grow_running.length; g++)
-				{
-					let grow = grow_running[g];
-					if (grow.Target == server.Name)
-					{
-						growCount++;
-					}
-				}
-
-				if (growCount > 0)
-				{
-					growColor = "LimeGreen";
-				}
+				moneyElement.style.color = GetMoneyColor(money, server.MaxMoney);
+				moneyElement.innerHTML = "$" + money.toLocaleString();
 			}
 
-			body += `
-				<tr>
-					<td style="color:${batchColor};">${batchCount}</td>
-					<td style="color:White;">${server.Name}</td>
-					<td style="color:${weakenColor};">${weakenCount}</td>
-					<td style="color:${securityColor};">${security.toFixed(2)}</td>
-					<td style="color:White;">${server.MinSecurity.toFixed(0)}</td>
-					<td style="color:${growColor};">${growCount}</td>
-					<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
-					<td style="color:LimeGreen;">$${server.MaxMoney.toLocaleString()}</td>
-				</tr>
-			`;
+			let minSecurityElement = eval('document').getElementById(`${server.Name}_minSecurity`)
+			if (minSecurityElement)
+			{
+				minSecurityElement.innerHTML = server.MinSecurity.toFixed(0);
+			}
+
+			let maxMoneyElement = eval('document').getElementById(`${server.Name}_maxMoney`)
+			if (maxMoneyElement)
+			{
+				maxMoneyElement.innerHTML = "$" + server.MaxMoney.toLocaleString();
+			}
 		}
 	}
-
-	let final = "</tbody></table>";
-
-	let content = table + header + body + final;
-	return content;
 }
 
-async function GenMenu_Details(ns, serverName)
+/** @param {NS} ns */
+async function UpdateMenu_Details(ns, serverName)
 {
-	let content = serverName + " details here...";
-
-	let table = `<table border=1 style="width: 400px; height: 100%">`;
-	body = "<tbody>";
-
-	let header = `
-		<thead>
-			<tr style="color:DarkGray;">
-				<th style="text-align: left; min-width: 200px; max-width: 200px;">Field</th>
-				<th style="text-align: left; min-width: 200px; max-width: 200px;">Value</th>
-			</tr>
-		</thead>`;
-
 	let servers = await HDD.Read(ns, "servers");
 	if (servers != null)
 	{
@@ -570,59 +357,6 @@ async function GenMenu_Details(ns, serverName)
 			let money = ns.getServerMoneyAvailable(server.Name);
 			let security = ns.getServerSecurityLevel(server.Name);
 
-			let purchasedColor = "White";
-			if (server.Purchased)
-			{
-				purchasedColor = "LimeGreen";
-			}
-
-			let rootedColor = "Red";
-			if (server.Rooted)
-			{
-				rootedColor = "LimeGreen";
-			}
-
-			let hackColor = "Red";
-			if (hackLevel >= server.HackLevel)
-			{
-				hackColor = "LimeGreen";
-			}
-			else if (hackLevel >= server.HackLevel / 2)
-			{
-				hackColor = "Yellow";
-			}
-
-			let ramColor = "LimeGreen";
-			if (ram < 2)
-			{
-				ramColor = "Red";
-			}
-			else if (ram < server.MaxRam)
-			{
-				ramColor = "Yellow";
-			}
-
-			let securityColor = "LimeGreen";
-			if (security > server.MinSecurity * 2)
-			{
-				securityColor = "Red";
-			}
-			else if (security > server.MinSecurity)
-			{
-				securityColor = "Yellow";
-			}
-
-			let moneyColor = "LimeGreen";
-			if (money < server.MaxMoney / 10)
-			{
-				moneyColor = "Red";
-			}
-			else if (money < server.MaxMoney)
-			{
-				moneyColor = "Yellow";
-			}
-
-			let batchColor = "Black";
 			let batchCount = 0;
 			let batchTime = now;
 			let batches_running = await HDD.Read(ns, "batches_running");
@@ -644,17 +378,12 @@ async function GenMenu_Details(ns, serverName)
 					}
 				}
 
-				if (batchCount > 0)
-				{
-					batchColor = "LimeGreen";
-				}
 				if (batchTime == now)
 				{
 					batchTime = 0;
 				}
 			}
 
-			let weakenColor = "Black";
 			let weakenCount = 0;
 			let weakenTime = now;
 			let weaken_running = await HDD.Read(ns, "weaken_running");
@@ -676,17 +405,12 @@ async function GenMenu_Details(ns, serverName)
 					}
 				}
 
-				if (weakenCount > 0)
-				{
-					weakenColor = "LimeGreen";
-				}
 				if (weakenTime == now)
 				{
 					weakenTime = 0;
 				}
 			}
 
-			let growColor = "Black";
 			let growCount = 0;
 			let growTime = Date.now();
 			let grow_running = await HDD.Read(ns, "grow_running");
@@ -708,133 +432,97 @@ async function GenMenu_Details(ns, serverName)
 					}
 				}
 
-				if (growCount > 0)
-				{
-					growColor = "LimeGreen";
-				}
 				if (growTime == now)
 				{
 					growTime = 0;
 				}
 			}
 
-			body += `
-				<tr>
-					<td style="color:White;">Name:</td>
-					<td style="color:White;">${server.Name}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Purchased:</td>
-					<td style="color:${purchasedColor};">${server.Purchased}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Rooted:</td>
-					<td style="color:${rootedColor};">${server.Rooted}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Hack Level:</td>
-					<td style="color:${hackColor};">${server.HackLevel}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Ram:</td>
-					<td style="color:${ramColor};">${ram.toFixed(2)}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Max Ram:</td>
-					<td style="color:White;">${server.MaxRam.toFixed(0)}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Security:</td>
-					<td style="color:${securityColor};">${security.toFixed(2)}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Min Security:</td>
-					<td style="color:White;">${server.MinSecurity.toFixed(0)}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Money:</td>
-					<td style="color:${moneyColor};">$${money.toLocaleString()}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Max Money:</td>
-					<td style="color:LimeGreen;">$${server.MaxMoney.toLocaleString()}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Weakening:</td>
-					<td style="color:${weakenColor};">${weakenCount} {${Util.msToTime(weakenTime)}}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Growing:</td>
-					<td style="color:${growColor};">${growCount} {${Util.msToTime(growTime)}}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Batching:</td>
-					<td style="color:${batchColor};">${batchCount} {${Util.msToTime(batchTime)}}</td>
-				</tr>
-				<tr>
-					<td style="color:White;">Path:</td>
-					<td>
-						<button id="path" class="${server.Name}" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Get Path</button>
-					</td>
-				</tr>
-			`;
-
-			let final = "</tbody></table>";
-			content = table + header + body + final;
-		}
-	}
-
-	return content;
-}
-
-async function GenMenu_Messages()
-{
-	let table = `<table border=1 style="width: 100%; height: 100%">`;
-	body = "<tbody>";
-
-	let header = `
-		<thead>
-			<tr style="color:DarkGray;">
-				<th style="text-align: left; min-width: 260px;">DateTime</th>
-				<th style="text-align: left; min-width: 200px;">Host</th>
-				<th style="text-align: left; min-width: 200px;">Order</th>
-				<th style="text-align: left; min-width: 200px;">Target</th>
-				<th style="text-align: left; min-width: 600px;">State</th>
-			</tr>
-		</thead>`;
-
-	let messages = await BUS.GetMessage_Cache();
-	if (messages != null)
-	{
-		let count = messages.length;
-		for (let i = count - 1; i > 0; i--)
-		{
-			let message = messages[i];
-
-			let stateColor = "LimeGreen";
-			if (message.State.includes("Error"))
+			let purchasedElement = eval('document').getElementById(`${server.Name}_purchased`)
+			if (purchasedElement)
 			{
-				stateColor = "Red";
+				purchasedElement.style.color = GetPurchasedColor(server.Purchased);
+				purchasedElement.innerHTML = server.Purchased;
 			}
 
-			body += `
-				<tr>
-					<td style="color:White;">${message.DateTime}</td>
-					<td style="color:White;">${message.Host}</td>
-					<td style="color:White;">${message.Order}</td>
-					<td style="color:White;">${message.Target}</td>
-					<td style="color:${stateColor};">${message.State}</td>
-				</tr>
-			`;
+			let rootedElement = eval('document').getElementById(`${server.Name}_rooted`)
+			if (rootedElement)
+			{
+				rootedElement.style.color = GetRootedColor(server.Rooted);
+				rootedElement.innerHTML = server.Rooted;
+			}
+
+			let hackLevelElement = eval('document').getElementById(`${server.Name}_hackLevel`)
+			if (hackLevelElement)
+			{
+				hackLevelElement.style.color = GetHackColor(hackLevel, server.HackLevel);
+				hackLevelElement.innerHTML = server.HackLevel;
+			}
+
+			let ramElement = eval('document').getElementById(`${server.Name}_ram`)
+			if (ramElement)
+			{
+				ramElement.style.color = GetRamColor(ram, server.MaxRam);
+				ramElement.innerHTML = ram.toFixed(2);
+			}
+
+			let securityElement = eval('document').getElementById(`${server.Name}_security`)
+			if (securityElement)
+			{
+				securityElement.style.color = GetSecurityColor(security, server.MinSecurity);
+				securityElement.innerHTML = security.toFixed(2);
+			}
+
+			let moneyElement = eval('document').getElementById(`${server.Name}_money`)
+			if (moneyElement)
+			{
+				moneyElement.style.color = GetMoneyColor(money, server.MaxMoney);
+				moneyElement.innerHTML = "$" + money.toLocaleString();
+			}
+
+			let weakenCountElement = eval('document').getElementById(`${server.Name}_weakenCount`)
+			if (weakenCountElement)
+			{
+				weakenCountElement.style.color = GetWeakenColor(weakenCount);
+				weakenCountElement.innerHTML = weakenCount + " {" + Util.msToTime(weakenTime) + "}";
+			}
+
+			let growCountElement = eval('document').getElementById(`${server.Name}_growCount`)
+			if (growCountElement)
+			{
+				growCountElement.style.color = GetGrowColor(growCount);
+				growCountElement.innerHTML = growCount + " {" + Util.msToTime(growTime) + "}";
+			}
+			
+			let batchCountElement = eval('document').getElementById(`${server.Name}_batchCount`)
+			if (batchCountElement)
+			{
+				batchCountElement.style.color = GetBatchColor(batchCount);
+				batchCountElement.innerHTML = batchCount + " {" + Util.msToTime(batchTime) + "}";
+			}
+
+			let maxRamElement = eval('document').getElementById(`${server.Name}_maxRam`)
+			if (maxRamElement)
+			{
+				maxRamElement.innerHTML = server.MaxRam.toFixed(0);
+			}
+
+			let minSecurityElement = eval('document').getElementById(`${server.Name}_minSecurity`)
+			if (minSecurityElement)
+			{
+				minSecurityElement.innerHTML = server.MinSecurity.toFixed(0);
+			}
+
+			let maxMoneyElement = eval('document').getElementById(`${server.Name}_maxMoney`)
+			if (maxMoneyElement)
+			{
+				maxMoneyElement.innerHTML = "$" + server.MaxMoney.toLocaleString();
+			}
 		}
 	}
-
-	let final = "</tbody></table>";
-
-	let content = table + header + body + final;
-	return content;
 }
 
+/** @param {NS} ns */
 async function Shutdown(ns)
 {
 	let scripts = ["/OS/Apps/Weaken.js", "/OS/Apps/Grow.js", "/OS/Apps/Hack.js", "/OS/Apps/RunBatch.js"];
@@ -890,4 +578,181 @@ async function RemoveScript(ns, script, host)
 		ns.scriptKill(script, host);
 		ns.rm(script, host);
 	}
+}
+
+/** @param {NS} ns */
+async function GetWeakenCount(ns, target)
+{
+	let weakenCount = 0;
+
+	let weaken_running = await HDD.Read(ns, "weaken_running");
+	if (weaken_running)
+	{
+		let count = weaken_running.length;
+		for (let w = 0; w < count; w++)
+		{
+			let weaken = weaken_running[w];
+			if (weaken.Target == target)
+			{
+				weakenCount++;
+			}
+		}
+	}
+
+	return weakenCount;
+}
+
+/** @param {NS} ns */
+async function GetGrowCount(ns, target)
+{
+	let growCount = 0;
+
+	let grow_running = await HDD.Read(ns, "grow_running");
+	if (grow_running)
+	{
+		let count = grow_running.length;
+		for (let g = 0; g < count; g++)
+		{
+			let grow = grow_running[g];
+			if (grow.Target == target)
+			{
+				growCount++;
+			}
+		}
+	}
+
+	return growCount;
+}
+
+/** @param {NS} ns */
+async function GetBatchCount(ns, target)
+{
+	let batchCount = 0;
+
+	let batches_running = await HDD.Read(ns, "batches_running");
+	if (batches_running)
+	{
+		let count = batches_running.length;
+		for (let b = 0; b < count; b++)
+		{
+			let batch = batches_running[b];
+			if (batch.Target == target)
+			{
+				batchCount++;
+			}
+		}
+	}
+
+	return batchCount;
+}
+
+function GetPurchasedColor(purchased)
+{
+	if (purchased)
+	{
+		return "LimeGreen";
+	}
+
+	return "White";
+}
+
+function GetRootedColor(rooted)
+{
+	if (rooted)
+	{
+		return "LimeGreen";
+	}
+
+	return "Red";
+}
+
+function GetHackColor(hackLevel, serverHackLevel)
+{
+	if (hackLevel >= serverHackLevel)
+	{
+		return "LimeGreen";
+	}
+	else if (hackLevel >= serverHackLevel / 2)
+	{
+		return "Yellow";
+	}
+
+	return "Red";
+}
+
+function GetRamColor(ram, maxRam)
+{
+	if (ram < 2)
+	{
+		return "Red";
+	}
+	else if (ram < maxRam)
+	{
+		return "Yellow";
+	}
+
+	return "LimeGreen";
+}
+
+function GetMoneyColor(money, maxMoney)
+{
+	if (money < maxMoney / 10)
+	{
+		return "Red";
+	}
+	else if (money < maxMoney)
+	{
+		return "Yellow";
+	}
+
+	return "LimeGreen";
+}
+
+function GetWeakenColor(weakenCount)
+{
+	if (weakenCount > 0)
+	{
+		return "LimeGreen";
+	}
+
+	return "Black";
+}
+
+function GetGrowColor(growCount)
+{
+	if (growCount > 0)
+	{
+		return "LimeGreen";
+	}
+
+	return "Black";
+}
+
+function GetBatchColor(batchCount)
+{
+	if (batchCount > 0)
+	{
+		return "LimeGreen";
+	}
+
+	return "Black";
+}
+
+function GetSecurityColor(security, minSecurity)
+{
+	if (security > minSecurity * 2)
+	{
+		return "Red";
+	}
+	else if (security > minSecurity)
+	{
+		return "Yellow";
+	}
+
+	return "LimeGreen";
+}
+
+function GetServerName()
+{
+	return current_menu.substring(current_menu.indexOf("_") + 1, current_menu.length);
 }

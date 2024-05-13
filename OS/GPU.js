@@ -1,3 +1,12 @@
+export const colors = 
+{
+	red: "\u001b[31;1m",
+	green: "\u001b[32;1m",
+	yellow: "\u001b[33;1m",
+	white: "\u001b[37;1m",
+	reset: "\u001b[0m"
+};
+
 export function injectContainer(ns, doc)
 {
 	if (doc != null)
@@ -37,11 +46,492 @@ export function injectContainer(ns, doc)
 	return null;
 }
 
-export const colors = 
+export async function GenMenu_Boot(container)
 {
-	red: "\u001b[31;1m",
-	green: "\u001b[32;1m",
-	yellow: "\u001b[33;1m",
-	white: "\u001b[37;1m",
-	reset: "\u001b[0m"
-};
+	let table = `<table border=0 style="width: 100%; height: 100%">`;
+	let body = "<tbody>";
+
+	body += `
+		<tr>
+			<td></td>
+			<td>
+				<div style="color:White; font-size: 64px; font-weight: bold; text-align: center; height:60px; overflow:hidden;">Hack OS</div>
+			</td>
+			<td></td>
+		</tr>
+		<tr>
+			<td></td>
+			<td>
+				<div style="margin:0 auto; text-align:center;">
+					<button id="start" style="font-size: 18px; text-align: center; height: 100px; width: 200px;">Start</button>
+				</div>
+			</td>
+			<td></td>
+		</tr>
+		<tr>
+			<td></td>
+			<td>
+				<div style="color:White; text-align: center; height:20px; overflow:hidden;"></div>
+			</td>
+			<td></td>
+		</tr>
+	`;
+
+	let final = "</tbody></table>";
+
+	let content = table + body + final;
+	container.innerHTML = content;
+}
+
+/** @param {NS} ns */
+export async function GenMenu_Start(ns)
+{
+	let table = `<table border=0 style="width: 100%; height: 100%">`;
+	let body = "<tbody>";
+
+	body += `<tr><td>Running boot scripts...</td></tr>`;
+	body += `<tr><td>_______________________</td></tr>`;
+
+	ns.exec("/OS/NIC.js", "home");
+	body += `<tr><td>Started NIC API.</td></tr>`;
+
+	ns.exec("/OS/BUS.js", "home");
+	body += `<tr><td>Started BUS API.</td></tr>`;
+
+	ns.exec("/OS/CPU.js", "home");
+	body += `<tr><td>Started CPU API.</td></tr>`;
+
+	body += `<tr><td>_______________________</td></tr>`;
+	body += `<tr><td>Ready!</td></tr>`;
+	
+	let final = "</tbody></table>";
+
+	return table + body + final;
+}
+
+export async function GenMenu_Main(container)
+{
+	let table = `<table border=1 style="width: 100%; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="max-width: 100px">Menu</th>
+				<th></th>
+				<th></th>
+			</tr>
+		</thead>`;
+
+	body += `
+		<tr>
+			<td style="vertical-align: top; max-width: 100px">
+				<div>
+					<button id="servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">All</button>
+					<button id="targets" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Targets</button>
+					<button id="purchased_servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Purchased</button>
+					<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Traffic</button>
+					<button id="shutdown" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Shutdown</button>
+				</div>
+			</td>
+			<td style="vertical-align: top; min-width:1290px; overflow:hidden;">
+				<div id="content"></div>
+			</td>
+			<td>
+				<div style="max-width:20px; overflow:hidden;"></div>
+			</td>
+		</tr>
+	`;
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	container.innerHTML = content;
+}
+
+export async function GenMenu_Servers(servers)
+{
+	let table = `
+		<style>
+			table.serverList tr:hover td {background-color: #454545;}
+		</style>
+		<table id="serverList" class="serverList" border=1 style="width: 100%; height: 100%">`;
+
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 80px;">Batching</th>
+				<th style="text-align: left; max-width: 100px;">Name</th>
+				<th style="text-align: left; min-width: 80px;">Weakening</th>
+				<th style="text-align: left; min-width: 80px;">Security</th>
+				<th style="text-align: left; min-width: 100px;">Min Security</th>
+				<th style="text-align: left; min-width: 80px;">Growing</th>
+				<th style="text-align: left; max-width: 260px;">Money</th>
+				<th style="text-align: left; max-width: 260px;">Max Money</th>
+			</tr>
+		</thead>`;
+
+	if (servers != null)
+	{
+		servers.sort((a, b) =>
+			b.Rooted - a.Rooted ||
+			a.MaxMoney - b.MaxMoney || 
+			a.HackLevel - b.HackLevel
+		);
+
+		let count = servers.length;
+		for (let i = 0; i < count; i++)
+		{
+			let server = servers[i];
+
+			body += `
+				<tr>
+					<td id="${server.Name}_batchCount" style="color:Black;">0</td>
+					<td style="color:White;">${server.Name}</td>
+					<td id="${server.Name}_weakenCount" style="color:Black;">0</td>
+					<td id="${server.Name}_security" style="color:White;">0</td>
+					<td id="${server.Name}_minSecurity" style="color:White;">0</td>
+					<td id="${server.Name}_growCount" style="color:Black;">0</td>
+					<td id="${server.Name}_money" style="color:White;">$0</td>
+					<td id="${server.Name}_maxMoney" style="color:LimeGreen;">$0</td>
+				</tr>
+			`;
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}
+
+/** @param {NS} ns */
+export async function GenMenu_Targets(servers)
+{
+	let table = `
+		<style>
+			table.targetList tr:hover td {background-color: #454545;}
+		</style>
+		<table id="targetList" class="targetList" border=1 style="width: 100%; height: 100%">`;
+
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 80px;">Batching</th>
+				<th style="text-align: left; max-width: 100px;">Name</th>
+				<th style="text-align: left; min-width: 80px;">Weakening</th>
+				<th style="text-align: left; min-width: 80px;">Security</th>
+				<th style="text-align: left; min-width: 100px;">Min Security</th>
+				<th style="text-align: left; min-width: 80px;">Growing</th>
+				<th style="text-align: left; max-width: 260px;">Money</th>
+				<th style="text-align: left; max-width: 260px;">Max Money</th>
+			</tr>
+		</thead>`;
+
+	if (servers != null)
+	{
+		servers.sort((a, b) =>
+			b.Rooted - a.Rooted ||
+			a.MaxMoney - b.MaxMoney || 
+			a.HackLevel - b.HackLevel
+		);
+
+		let count = servers.length;
+		for (let i = 0; i < count; i++)
+		{
+			let server = servers[i];
+
+			body += `
+				<tr>
+					<td id="${server.Name}_batchCount" style="color:Black;">0</td>
+					<td style="color:White;">${server.Name}</td>
+					<td id="${server.Name}_weakenCount" style="color:Black;">0</td>
+					<td id="${server.Name}_security" style="color:White;">0</td>
+					<td id="${server.Name}_minSecurity" style="color:White;">0</td>
+					<td id="${server.Name}_growCount" style="color:Black;">0</td>
+					<td id="${server.Name}_money" style="color:White;">$0</td>
+					<td id="${server.Name}_maxMoney" style="color:LimeGreen;">$0</td>
+				</tr>
+			`;
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}
+
+/** @param {NS} ns */
+export async function GenMenu_Purchased(ns, available_servers)
+{
+	let table = `<table border=1 style="width: 420px; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 260px; max-width: 160px;">Field</th>
+				<th style="text-align: left; min-width: 260px; max-width: 160px;">Value</th>
+			</tr>
+		</thead>`;
+
+	let serverCost = ns.getPurchasedServerCost(2);
+	let nextCost = Number.MAX_SAFE_INTEGER;
+	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
+	let maxPurchasedServerRam = 0;
+	let serversAtMinRam = 0;
+	let serversAtMaxRam = 0;
+
+	let purchased_servers = [];
+
+	if (available_servers != null)
+	{
+		let available_count = available_servers.length;
+		for (let i = 0; i < available_count; i++)
+		{
+			let available_server = available_servers[i];
+			if (ns.serverExists(available_server.Name) &&
+					available_server.Purchased)
+			{
+				purchased_servers.push(available_server);
+			}
+		}
+	}
+
+	let count = purchased_servers.length;
+	for (let i = 0; i < count; i++)
+	{
+		let server = purchased_servers[i];
+
+		let serverRam = ns.getServerMaxRam(server.Name);
+		let nextRam = serverRam * 2;
+		let upgradeCost = ns.getPurchasedServerCost(nextRam);
+
+		if (upgradeCost < nextCost)
+		{
+			nextCost = upgradeCost;
+		}
+
+		if (serverRam < minPurchasedServerRam)
+		{
+			minPurchasedServerRam = serverRam;
+		}
+
+		if (serverRam > maxPurchasedServerRam)
+		{
+			maxPurchasedServerRam = serverRam;
+		}
+
+		body += `
+			<tr>
+				<td style="color:White;">Server Name:</td>
+				<td style="color:White;">${server.Name}</td>
+			</tr>
+		`;
+	}
+
+	for (let i = 0; i < count; i++)
+	{
+		let server = purchased_servers[i];
+		let serverRam = ns.getServerMaxRam(server.Name);
+
+		if (serverRam == minPurchasedServerRam)
+		{
+			serversAtMinRam++;
+		}
+		else if (serverRam == maxPurchasedServerRam)
+		{
+			serversAtMaxRam++;
+		}
+	}
+
+	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
+	{
+		minPurchasedServerRam = 0;
+	}
+
+	if (nextCost == Number.MAX_SAFE_INTEGER)
+	{
+		nextCost = serverCost;
+	}
+
+	body += `
+		<tr>
+			<td style="color:White;">Min Purchased Server Ram:</td>
+			<td style="color:LimeGreen;">${minPurchasedServerRam} GB</td>
+		</tr>
+		<tr>
+			<td style="color:White;">Servers at Min Ram:</td>
+			<td style="color:LimeGreen;">${serversAtMinRam}</td>
+		</tr>
+		<tr>
+			<td style="color:White;">Max Purchased Server Ram:</td>
+			<td style="color:LimeGreen;">${maxPurchasedServerRam} GB</td>
+		</tr>
+		<tr>
+			<td style="color:White;">Servers at Max Ram:</td>
+			<td style="color:LimeGreen;">${serversAtMaxRam}</td>
+		</tr>
+		<tr>
+			<td style="color:White;">Buy/Upgrade Server Cost:</td>
+			<td style="color:LimeGreen;">$${nextCost.toLocaleString()}</td>
+		</tr>
+	`;
+
+	let final = "</tbody></table>";
+	return table + header + body + final;
+}
+
+/** @param {NS} ns */
+export async function GenMenu_Details(servers, serverName)
+{
+	let content = serverName + " server not found!";
+
+	let table = `<table border=1 style="width: 400px; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 200px; max-width: 200px;">Field</th>
+				<th style="text-align: left; min-width: 200px; max-width: 200px;">Value</th>
+			</tr>
+		</thead>`;
+
+	if (servers != null)
+	{
+		let server = null;
+
+		let count = servers.length;
+		for (let i = 0; i < count; i++)
+		{
+			let host = servers[i];
+			if (host.Name == serverName)
+			{
+				server = host;
+				break;
+			}
+		}
+
+		if (server)
+		{
+			body += `
+				<tr>
+					<td style="color:White;">Name:</td>
+					<td style="color:White;">${server.Name}</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Purchased:</td>
+					<td id="${server.Name}_purchased" style="color:White;">False</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Rooted:</td>
+					<td id="${server.Name}_rooted" style="color:White;">False</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Hack Level:</td>
+					<td id="${server.Name}_hackLevel" style="color:White;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Ram:</td>
+					<td id="${server.Name}_ram" style="color:White;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Max Ram:</td>
+					<td id="${server.Name}_maxRam" style="color:White;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Security:</td>
+					<td id="${server.Name}_security" style="color:White;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Min Security:</td>
+					<td id="${server.Name}_minSecurity" style="color:White;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Money:</td>
+					<td id="${server.Name}_money" style="color:White;">$0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Max Money:</td>
+					<td id="${server.Name}_maxMoney" style="color:LimeGreen;">$0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Weakening:</td>
+					<td id="${server.Name}_weakenCount" style="color:Black;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Growing:</td>
+					<td id="${server.Name}_growCount" style="color:Black;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Batching:</td>
+					<td id="${server.Name}_batchCount" style="color:Black;">0</td>
+				</tr>
+				<tr>
+					<td style="color:White;">Path:</td>
+					<td>
+						<button id="path" class="${server.Name}" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Get Path</button>
+					</td>
+				</tr>
+			`;
+
+			let final = "</tbody></table>";
+			content = table + header + body + final;
+		}
+	}
+
+	return content;
+}
+
+export async function GenMenu_Messages(messages)
+{
+	let table = `<table border=1 style="width: 100%; height: 100%">`;
+	let body = "<tbody>";
+
+	let header = `
+		<thead>
+			<tr style="color:DarkGray;">
+				<th style="text-align: left; min-width: 260px;">DateTime</th>
+				<th style="text-align: left; min-width: 200px;">Host</th>
+				<th style="text-align: left; min-width: 200px;">Order</th>
+				<th style="text-align: left; min-width: 200px;">Target</th>
+				<th style="text-align: left; min-width: 600px;">State</th>
+			</tr>
+		</thead>`;
+
+	if (messages != null)
+	{
+		let count = messages.length;
+		for (let i = count - 1; i > 0; i--)
+		{
+			let message = messages[i];
+
+			let stateColor = "LimeGreen";
+			if (message.State.includes("Error"))
+			{
+				stateColor = "Red";
+			}
+
+			body += `
+				<tr>
+					<td style="color:White;">${message.DateTime}</td>
+					<td style="color:White;">${message.Host}</td>
+					<td style="color:White;">${message.Order}</td>
+					<td style="color:White;">${message.Target}</td>
+					<td style="color:${stateColor};">${message.State}</td>
+				</tr>
+			`;
+		}
+	}
+
+	let final = "</tbody></table>";
+
+	let content = table + header + body + final;
+	return content;
+}

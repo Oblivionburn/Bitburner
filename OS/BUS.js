@@ -62,66 +62,68 @@ async function QueueMessages()
 	{
 		let message = messages[i];
 
-		if (message.Order == "Weaken")
+		switch (message.Order)
 		{
-			if (weaken_queue.length >= 200)
-			{
-				weaken_queue.splice(0, 1);
-			}
+			case "Weaken":
+				if (weaken_queue.length >= 200)
+				{
+					weaken_queue.splice(0, 1);
+				}
 
-			weaken_queue.push(message);
-			messages.splice(i, 1);
-			i--;
-		}
-		else if (message.Order == "Grow")
-		{
-			if (grow_queue.length >= 200)
-			{
-				grow_queue.splice(0, 1);
-			}
+				weaken_queue.push(message);
+				messages.splice(i, 1);
+				i--;
+				break;
 
-			grow_queue.push(message);
-			messages.splice(i, 1);
-			i--;
-		}
-		else if (message.Order == "Hack")
-		{
-			if (hack_queue.length >= 200)
-			{
-				hack_queue.splice(0, 1);
-			}
+			case "Grow":
+				if (grow_queue.length >= 200)
+				{
+					grow_queue.splice(0, 1);
+				}
 
-			hack_queue.push(message);
-			messages.splice(i, 1);
-			i--;
-		}
-		else if (message.Order == "Batch" ||
-						 message.Order == "/OS/Apps/Weaken.js" ||
-						 message.Order == "/OS/Apps/Grow.js" ||
-						 message.Order == "/OS/Apps/Hack.js")
-		{
-			if (batch_queue.length >= 200)
-			{
-				batch_queue.splice(0, 1);
-			}
+				grow_queue.push(message);
+				messages.splice(i, 1);
+				i--;
+				break;
 
-			batch_queue.push(message);
-			messages.splice(i, 1);
-			i--;
-		}
-		else if (message.Order == "Purchase" ||
-						 message.Order == "Upgrade" ||
-						 message.Order == "Infect" ||
-						 message.Order == "Root")
-		{
-			if (nic_queue.length >= 200)
-			{
-				nic_queue.splice(0, 1);
-			}
+			case "Hack":
+				if (hack_queue.length >= 200)
+				{
+					hack_queue.splice(0, 1);
+				}
 
-			nic_queue.push(message);
-			messages.splice(i, 1);
-			i--;
+				hack_queue.push(message);
+				messages.splice(i, 1);
+				i--;
+				break;
+
+			case "Batch":
+			case "/OS/Apps/Weaken.js":
+			case "/OS/Apps/Grow.js":
+			case "/OS/Apps/Hack.js":
+				if (batch_queue.length >= 200)
+				{
+					batch_queue.splice(0, 1);
+				}
+
+				batch_queue.push(message);
+				messages.splice(i, 1);
+				i--;
+				break;
+
+			case "Purchase":
+			case "Upgrade":
+			case "Infect":
+			case "Root":
+				if (nic_queue.length >= 200)
+				{
+					nic_queue.splice(0, 1);
+				}
+
+				nic_queue.push(message);
+				messages.splice(i, 1);
+				i--;
+				break;
 		}
 	}
 }
