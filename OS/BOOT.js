@@ -11,6 +11,7 @@ export async function main(ns)
 {
 	ns.disableLog("ALL");
 	ns.tail(ns.getScriptName(), "home");
+	ns.resizeTail(1440, 860);
 
 	menuSwitched = true;
 	current_menu = "boot";
@@ -22,23 +23,23 @@ export async function main(ns)
 		if (menuSwitched)
 		{
 			menuSwitched = false;
-			await MenuSwitch(ns, container);
+			MenuSwitch(ns, container);
 		}
 
-		await UpdateContainer(ns, container);
+		UpdateContainer(ns, container);
 		await ns.sleep(100);
 	}
 }
 
 /** @param {NS} ns */
-async function MenuSwitch(ns, container)
+function MenuSwitch(ns, container)
 {
 	if (container != null)
 	{
 		switch (current_menu)
 		{
 			case "boot":
-				await GPU.GenMenu_Boot(container);
+				GPU.GenMenu_Boot(container);
 
 				eval('document').getElementById("start").addEventListener("click", function()
 				{
@@ -48,9 +49,9 @@ async function MenuSwitch(ns, container)
 				break;
 
 			case "main":
-				await GPU.GenMenu_Main(container);
+				GPU.GenMenu_Main(container);
 				
-				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Start(ns);
+				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Start(ns);
 
 				eval('document').getElementById("servers").addEventListener("click", function()
 				{
@@ -84,8 +85,8 @@ async function MenuSwitch(ns, container)
 				break;
 
 			case "servers":
-				let servers = await HDD.Read(ns, "servers");
-				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Servers(servers);
+				let servers = HDD.Read(ns, "servers");
+				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Servers(servers);
 				
 				let serverTable = eval('document').getElementById("serverList");
 				if (serverTable)
@@ -104,8 +105,8 @@ async function MenuSwitch(ns, container)
 				break;
 
 			case "targets":
-				let targets = await HDD.Read(ns, "targets");
-				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Targets(targets);
+				let targets = HDD.Read(ns, "targets");
+				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Targets(targets);
 				
 				let targetTable = eval('document').getElementById("targetList");
 				if (targetTable)
@@ -124,20 +125,32 @@ async function MenuSwitch(ns, container)
 				break;
 
 			case "purchased_servers":
-				let available_servers = await HDD.Read(ns, "available_servers");
-				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Purchased(ns, available_servers);
+				let available_servers = HDD.Read(ns, "available_servers");
+				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Purchased(ns, available_servers);
+
+				eval('document').getElementById("purchase_toggle").addEventListener("click", function()
+				{
+					menuSwitched = true;
+					current_menu = "purchaseToggle";
+				});
+				break;
+
+			case "purchaseToggle":
+				PurchaseToggle(ns);
+				menuSwitched = true;
+				current_menu = "purchased_servers";
 				break;
 
 			case "shutdown":
-				await Shutdown(ns);
+				Shutdown(ns);
 				break;
 
 			default:
 				if (current_menu.includes("details_"))
 				{
 					let serverName = GetServerName();
-					let servers = await HDD.Read(ns, "servers");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Details(servers, serverName);
+					let servers = HDD.Read(ns, "servers");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Details(servers, serverName);
 
 					let detailsTable = eval('document').getElementById("detailsList");
 					if (detailsTable)
@@ -191,18 +204,18 @@ async function MenuSwitch(ns, container)
 				}
 				else if (current_menu.includes("weakening_"))
 				{
-					let weaken_running = await HDD.Read(ns, "weaken_running");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), weaken_running);
+					let weaken_running = HDD.Read(ns, "weaken_running");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Weakening(GetServerName(), weaken_running);
 				}
 				else if (current_menu.includes("growing_"))
 				{
-					let grow_running = await HDD.Read(ns, "grow_running");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), grow_running);
+					let grow_running = HDD.Read(ns, "grow_running");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Weakening(GetServerName(), grow_running);
 				}
 				else if (current_menu.includes("batching_"))
 				{
-					let batches_running = await HDD.Read(ns, "batches_running");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Batching(GetServerName(), batches_running);
+					let batches_running = HDD.Read(ns, "batches_running");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Batching(GetServerName(), batches_running);
 				}
 				else if (current_menu.includes("path_"))
 				{
@@ -210,71 +223,70 @@ async function MenuSwitch(ns, container)
 				}
 				else if (current_menu.includes("traffic_"))
 				{
-					let messages = await BUS.GetMessage_Cache();
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Traffic(GetServerName(), messages);
+					let messages = BUS.GetMessage_Cache();
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Traffic(GetServerName(), messages);
 				}
 		}
 	}
 }
 
 /** @param {NS} ns */
-async function UpdateContainer(ns, container)
+function UpdateContainer(ns, container)
 {
 	if (container != null)
 	{
 		switch (current_menu)
 		{
 			case "servers":
-				await UpdateMenu_Servers(ns)
+				UpdateMenu_Servers(ns)
 				break;
 
 			case "targets":
-				await UpdateMenu_Targets(ns)
+				UpdateMenu_Targets(ns)
 				break;
 
 			case "purchased_servers":
-				let available_servers = await HDD.Read(ns, "available_servers");
-				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Purchased(ns, available_servers);
+				UpdateMenu_Purchased(ns);
 				break;
 
 			case "messages":
-				let messages = await BUS.GetMessage_Cache();
-				eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Messages(messages);
+				let messages = BUS.GetMessage_Cache();
+				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Messages(messages);
 				break;
 
 			default:
 				if (current_menu.includes("details_"))
 				{
-					await UpdateMenu_Details(ns, GetServerName());
+					UpdateMenu_Details(ns, GetServerName());
 				}
 				else if (current_menu.includes("weakening_"))
 				{
-					let weaken_running = await HDD.Read(ns, "weaken_running");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), weaken_running);
+					let weaken_running = HDD.Read(ns, "weaken_running");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Weakening(GetServerName(), weaken_running);
 				}
 				else if (current_menu.includes("growing_"))
 				{
-					let grow_running = await HDD.Read(ns, "grow_running");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Weakening(GetServerName(), grow_running);
+					let grow_running = HDD.Read(ns, "grow_running");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Weakening(GetServerName(), grow_running);
 				}
 				else if (current_menu.includes("batching_"))
 				{
-					let batches_running = await HDD.Read(ns, "batches_running");
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Batching(GetServerName(), batches_running);
+					let batches_running = HDD.Read(ns, "batches_running");
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Batching(GetServerName(), batches_running);
 				}
 				else if (current_menu.includes("traffic_"))
 				{
-					let messages = await BUS.GetMessage_Cache();
-					eval('document').getElementById("content").innerHTML = await GPU.GenMenu_Traffic(GetServerName(), messages);
+					let messages = BUS.GetMessage_Cache();
+					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Traffic(GetServerName(), messages);
 				}
 		}
 	}
 }
 
 /** @param {NS} ns */
-async function UpdateMenu_Servers(ns)
+function UpdateMenu_Servers(ns)
 {
-	let servers = await HDD.Read(ns, "servers");
+	let servers = HDD.Read(ns, "servers");
 	if (servers != null)
 	{
 		let count = servers.length;
@@ -288,7 +300,7 @@ async function UpdateMenu_Servers(ns)
 			let batchCountElement = eval('document').getElementById(`${server.Name}_batchCount`)
 			if (batchCountElement)
 			{
-				let batchCount = await GetBatchCount(ns, server.Name);
+				let batchCount = GetBatchCount(ns, server.Name);
 				batchCountElement.style.color = GetBatchColor(batchCount);
 				batchCountElement.innerHTML = batchCount;
 			}
@@ -302,7 +314,7 @@ async function UpdateMenu_Servers(ns)
 			let weakenCountElement = eval('document').getElementById(`${server.Name}_weakenCount`)
 			if (weakenCountElement)
 			{
-				let weakenCount = await GetWeakenCount(ns, server.Name);
+				let weakenCount = GetWeakenCount(ns, server.Name);
 				weakenCountElement.style.color = GetWeakenColor(weakenCount);
 				weakenCountElement.innerHTML = weakenCount;
 			}
@@ -317,7 +329,7 @@ async function UpdateMenu_Servers(ns)
 			let growCountElement = eval('document').getElementById(`${server.Name}_growCount`)
 			if (growCountElement)
 			{
-				let growCount = await GetGrowCount(ns, server.Name);
+				let growCount = GetGrowCount(ns, server.Name);
 				growCountElement.style.color = GetGrowColor(growCount);
 				growCountElement.innerHTML = growCount;
 			}
@@ -345,9 +357,9 @@ async function UpdateMenu_Servers(ns)
 }
 
 /** @param {NS} ns */
-async function UpdateMenu_Targets(ns)
+function UpdateMenu_Targets(ns)
 {
-	let servers = await HDD.Read(ns, "targets");
+	let servers = HDD.Read(ns, "targets");
 	if (servers != null)
 	{
 		let count = servers.length;
@@ -361,7 +373,7 @@ async function UpdateMenu_Targets(ns)
 			let batchCountElement = eval('document').getElementById(`${server.Name}_batchCount`)
 			if (batchCountElement)
 			{
-				let batchCount = await GetBatchCount(ns, server.Name);
+				let batchCount = GetBatchCount(ns, server.Name);
 				batchCountElement.style.color = GetBatchColor(batchCount);
 				batchCountElement.innerHTML = batchCount;
 			}
@@ -369,7 +381,7 @@ async function UpdateMenu_Targets(ns)
 			let weakenCountElement = eval('document').getElementById(`${server.Name}_weakenCount`)
 			if (weakenCountElement)
 			{
-				let weakenCount = await GetWeakenCount(ns, server.Name);
+				let weakenCount = GetWeakenCount(ns, server.Name);
 				weakenCountElement.style.color = GetWeakenColor(weakenCount);
 				weakenCountElement.innerHTML = weakenCount;
 			}
@@ -384,7 +396,7 @@ async function UpdateMenu_Targets(ns)
 			let growCountElement = eval('document').getElementById(`${server.Name}_growCount`)
 			if (growCountElement)
 			{
-				let growCount = await GetGrowCount(ns, server.Name);
+				let growCount = GetGrowCount(ns, server.Name);
 				growCountElement.style.color = GetGrowColor(growCount);
 				growCountElement.innerHTML = growCount;
 			}
@@ -412,9 +424,166 @@ async function UpdateMenu_Targets(ns)
 }
 
 /** @param {NS} ns */
-async function UpdateMenu_Details(ns, serverName)
+function UpdateMenu_Purchased(ns)
 {
-	let servers = await HDD.Read(ns, "servers");
+	let serverCost = ns.getPurchasedServerCost(2);
+	let nextCost = Number.MAX_SAFE_INTEGER;
+	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
+	let maxPurchasedServerRam = 0;
+	let serversAtMinRam = 0;
+	let serversAtMaxRam = 0;
+
+	let purchased_servers = [];
+
+	let available_servers = HDD.Read(ns, "available_servers");
+	if (available_servers != null)
+	{
+		let available_count = available_servers.length;
+		for (let i = 0; i < available_count; i++)
+		{
+			let available_server = available_servers[i];
+			if (ns.serverExists(available_server.Name) &&
+					available_server.Purchased)
+			{
+				purchased_servers.push(available_server);
+			}
+		}
+	}
+
+	let count = purchased_servers.length;
+	for (let i = 0; i < count; i++)
+	{
+		let server = purchased_servers[i];
+
+		let serverRam = ns.getServerMaxRam(server.Name);
+		let nextRam = serverRam * 2;
+		let upgradeCost = ns.getPurchasedServerCost(nextRam);
+
+		if (upgradeCost < nextCost)
+		{
+			nextCost = upgradeCost;
+		}
+
+		if (serverRam < minPurchasedServerRam)
+		{
+			minPurchasedServerRam = serverRam;
+		}
+
+		if (serverRam > maxPurchasedServerRam)
+		{
+			maxPurchasedServerRam = serverRam;
+		}
+
+		let serverNameElement = eval('document').getElementById(`${server.Name}_purchased`)
+		if (!serverNameElement)
+		{
+			menuSwitched = true;
+			return;
+		}
+	}
+
+	for (let i = 0; i < count; i++)
+	{
+		let server = purchased_servers[i];
+		let serverRam = ns.getServerMaxRam(server.Name);
+
+		if (serverRam == minPurchasedServerRam)
+		{
+			serversAtMinRam++;
+		}
+		else if (serverRam == maxPurchasedServerRam)
+		{
+			serversAtMaxRam++;
+		}
+	}
+
+	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
+	{
+		minPurchasedServerRam = 0;
+	}
+
+	if (nextCost == Number.MAX_SAFE_INTEGER)
+	{
+		nextCost = serverCost;
+	}
+
+	let minPurchasedServerRamElement = eval('document').getElementById("minPurchasedServerRam")
+	if (minPurchasedServerRamElement)
+	{
+		minPurchasedServerRamElement.innerHTML = minPurchasedServerRam = " GB";
+	}
+
+	let serversAtMinRamElement = eval('document').getElementById("serversAtMinRam")
+	if (serversAtMinRamElement)
+	{
+		serversAtMinRamElement.innerHTML = serversAtMinRam;
+	}
+
+	let maxPurchasedServerRamElement = eval('document').getElementById("maxPurchasedServerRam")
+	if (maxPurchasedServerRamElement)
+	{
+		maxPurchasedServerRamElement.innerHTML = maxPurchasedServerRam = " GB";
+	}
+
+	let serversAtMaxRamElement = eval('document').getElementById("serversAtMaxRam")
+	if (serversAtMaxRamElement)
+	{
+		serversAtMaxRamElement.innerHTML = serversAtMaxRam;
+	}
+
+	let nextCostElement = eval('document').getElementById("nextCost")
+	if (nextCostElement)
+	{
+		nextCostElement.innerHTML = "$" + nextCost.toLocaleString();
+	}
+
+	let purchasing = true;
+
+	let configs = HDD.Read(ns, "configs");
+	if (configs)
+	{
+		for (let i = 0; i < configs.length; i++)
+		{
+			let config = configs[i];
+			if (config.Name == "PurchasingEnabled")
+			{
+				purchasing = config.Value;
+				break;
+			}
+		}
+	}
+
+	let purchaseToggleTextElement = eval('document').getElementById("purchase_toggle_text")
+	if (purchaseToggleTextElement)
+	{
+		if (purchasing)
+		{
+			purchaseToggleTextElement.innerHTML = "Buy/Upgrade Servers: Yes";
+		}
+		else
+		{
+			purchaseToggleTextElement.innerHTML = "Buy/Upgrade Servers: No";
+		}
+	}
+
+	let purchaseToggleElement = eval('document').getElementById("purchase_toggle")
+	if (purchaseToggleElement)
+	{
+		if (purchasing)
+		{
+			purchaseToggleElement.innerHTML = "Disable";
+		}
+		else
+		{
+			purchaseToggleElement.innerHTML = "Enable";
+		}
+	}
+}
+
+/** @param {NS} ns */
+function UpdateMenu_Details(ns, serverName)
+{
+	let servers = HDD.Read(ns, "servers");
 	if (servers != null)
 	{
 		let server = null;
@@ -440,7 +609,7 @@ async function UpdateMenu_Details(ns, serverName)
 
 			let batchCount = 0;
 			let batchTime = now;
-			let batches_running = await HDD.Read(ns, "batches_running");
+			let batches_running = HDD.Read(ns, "batches_running");
 			if (batches_running)
 			{
 				for (let b = 0; b < batches_running.length; b++)
@@ -467,7 +636,7 @@ async function UpdateMenu_Details(ns, serverName)
 
 			let weakenCount = 0;
 			let weakenTime = now;
-			let weaken_running = await HDD.Read(ns, "weaken_running");
+			let weaken_running = HDD.Read(ns, "weaken_running");
 			if (weaken_running)
 			{
 				for (let w = 0; w < weaken_running.length; w++)
@@ -494,7 +663,7 @@ async function UpdateMenu_Details(ns, serverName)
 
 			let growCount = 0;
 			let growTime = Date.now();
-			let grow_running = await HDD.Read(ns, "grow_running");
+			let grow_running = HDD.Read(ns, "grow_running");
 			if (grow_running)
 			{
 				for (let g = 0; g < grow_running.length; g++)
@@ -604,11 +773,11 @@ async function UpdateMenu_Details(ns, serverName)
 }
 
 /** @param {NS} ns */
-async function Shutdown(ns)
+function Shutdown(ns)
 {
 	let scripts = ["/OS/Apps/Weaken.js", "/OS/Apps/Grow.js", "/OS/Apps/Hack.js", "/OS/Apps/RunBatch.js"];
 
-	let servers = await HDD.Read(ns, "servers");
+	let servers = HDD.Read(ns, "servers");
 	if (servers != null)
 	{
 		for (let i = 0; i < servers.length; i++)
@@ -652,7 +821,7 @@ async function Shutdown(ns)
 }
 
 /** @param {NS} ns */
-async function RemoveScript(ns, script, host)
+function RemoveScript(ns, script, host)
 {
 	if (ns.fileExists(script, host))
 	{
@@ -662,11 +831,11 @@ async function RemoveScript(ns, script, host)
 }
 
 /** @param {NS} ns */
-async function GetWeakenCount(ns, target)
+function GetWeakenCount(ns, target)
 {
 	let weakenCount = 0;
 
-	let weaken_running = await HDD.Read(ns, "weaken_running");
+	let weaken_running = HDD.Read(ns, "weaken_running");
 	if (weaken_running)
 	{
 		let count = weaken_running.length;
@@ -684,11 +853,11 @@ async function GetWeakenCount(ns, target)
 }
 
 /** @param {NS} ns */
-async function GetGrowCount(ns, target)
+function GetGrowCount(ns, target)
 {
 	let growCount = 0;
 
-	let grow_running = await HDD.Read(ns, "grow_running");
+	let grow_running = HDD.Read(ns, "grow_running");
 	if (grow_running)
 	{
 		let count = grow_running.length;
@@ -706,11 +875,11 @@ async function GetGrowCount(ns, target)
 }
 
 /** @param {NS} ns */
-async function GetBatchCount(ns, target)
+function GetBatchCount(ns, target)
 {
 	let batchCount = 0;
 
-	let batches_running = await HDD.Read(ns, "batches_running");
+	let batches_running = HDD.Read(ns, "batches_running");
 	if (batches_running)
 	{
 		let count = batches_running.length;
@@ -836,4 +1005,27 @@ function GetSecurityColor(security, minSecurity)
 function GetServerName()
 {
 	return current_menu.substring(current_menu.indexOf("_") + 1, current_menu.length);
+}
+
+/** @param {NS} ns */
+function PurchaseToggle(ns)
+{
+	let configs = HDD.Read(ns, "configs");
+	if (configs)
+	{
+		for (let i = 0; i < configs.length; i++)
+		{
+			let config = configs[i];
+			if (config.Name == "PurchasingEnabled")
+			{
+				let enabled = config.Value;
+				enabled = !enabled;
+				config.Value = enabled;
+				configs[i] = config;
+				break;
+			}
+		}
+
+		HDD.Write(ns, "configs", configs);
+	}
 }

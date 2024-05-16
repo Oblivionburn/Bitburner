@@ -4,6 +4,7 @@ import * as HDD from "./OS/HDD.js";
 
 let index = [];
 let servers = [];
+let purchasingEnabled;
 let port = 5;
 
 /** @param {NS} ns */
@@ -16,17 +17,45 @@ export async function main(ns)
 
 	while (true)
 	{
-		await DeepScan(ns, "home");
-		await HDD.Write(ns, "servers", servers);
+		DeepScan(ns, "home");
+		HDD.Write(ns, "servers", servers);
+		PurchasingEnabled(ns);
 
-		await PurchaseServers(ns);
-		await UpgradeServers(ns);
+		if (purchasingEnabled)
+		{
+			PurchaseServers(ns);
+			UpgradeServers(ns);
+		}
+		
 		await ns.sleep(100);
 	}
 }
 
 /** @param {NS} ns */
-async function PurchaseServers(ns)
+function PurchasingEnabled(ns)
+{
+	let configs = HDD.Read(ns, "configs");
+	if (!configs)
+	{
+		purchasingEnabled = true;
+		HDD.Write(ns, "configs", [{Name: "PurchasingEnabled", Value: true}]);
+	}
+	else
+	{
+		for (let i = 0; i < configs.length; i++)
+		{
+			let config = configs[i];
+			if (config.Name == "PurchasingEnabled")
+			{
+				purchasingEnabled = config.Value;
+				break;
+			}
+		}
+	}
+}
+
+/** @param {NS} ns */
+function PurchaseServers(ns)
 {
 	let money = ns.getServerMoneyAvailable("home");
 	let serverCost = ns.getPurchasedServerCost(2);
@@ -36,7 +65,7 @@ async function PurchaseServers(ns)
 		let updated = false;
 		let purchasedNum = 0;
 
-		let servers = await HDD.Read(ns, "servers");
+		let servers = HDD.Read(ns, "servers");
 		for (let i = 0; i < servers.length; i++)
 		{
 			let server = servers[i];
@@ -83,15 +112,15 @@ async function PurchaseServers(ns)
 
 		if (updated)
 		{
-			await HDD.Write(ns, "servers", servers);
+			HDD.Write(ns, "servers", servers);
 		}
 	}
 }
 
 /** @param {NS} ns */
-async function UpgradeServers(ns)
+function UpgradeServers(ns)
 {
-	let servers = await HDD.Read(ns, "servers");
+	let servers = HDD.Read(ns, "servers");
 	if (servers != null &&
 			servers.length > 0)
 	{
@@ -140,20 +169,20 @@ async function UpgradeServers(ns)
 
 		if (updated)
 		{
-			await HDD.Write(ns, "servers", servers);
+			HDD.Write(ns, "servers", servers);
 		}
 	}
 }
 
 /** @param {NS} ns */
-async function DeepScan(ns, host)
+function DeepScan(ns, host)
 {
 	let maxRam = ns.getServerMaxRam(host);
 	let maxMoney = ns.getServerMaxMoney(host);
 	let hackLevel = ns.getServerRequiredHackingLevel(host);
 	let security = ns.getServerSecurityLevel(host);
 	let minSecurity = ns.getServerMinSecurityLevel(host);
-	let rooted = await Root(ns, host);
+	let rooted = Root(ns, host);
 
 	let server =
 	{
@@ -174,7 +203,7 @@ async function DeepScan(ns, host)
 			server.Rooted &&
 			server.HasRam)
 	{
-		await Infect(ns, host);
+		Infect(ns, host);
 	}
 
 	let scan_results = ns.scan(host);
@@ -195,12 +224,12 @@ async function DeepScan(ns, host)
 				}
 				
 				index.push(server_name);
-				await DeepScan(ns, server_name);
+				DeepScan(ns, server_name);
 			}
 		}
 	}
 
-	let indexed = await IndexedServer(host);
+	let indexed = IndexedServer(host);
 	if (!indexed)
 	{
 		servers.push(server);
@@ -208,7 +237,7 @@ async function DeepScan(ns, host)
 }
 
 /** @param {NS} ns */
-async function Infect(ns, host)
+function Infect(ns, host)
 {
 	ns.scp("/OS/Apps/Weaken.js", host, "home");
 	ns.scp("/OS/Apps/Grow.js", host, "home");
@@ -217,7 +246,7 @@ async function Infect(ns, host)
 	ns.tryWritePort(port, {DateTime: Util.DTStamp(), Host: "home", Order: "Infect", Target: host, State: "Finished"});
 }
 
-async function IndexedServer(name)
+function IndexedServer(name)
 {
 	let count = servers.length;
 	for (let i = 0; i < count; i++)
@@ -233,7 +262,7 @@ async function IndexedServer(name)
 }
 
 /** @param {NS} ns */
-async function Root(ns, host)
+function Root(ns, host)
 {
 	let portsRequired = ns.getServerNumPortsRequired(host);
 	let hasRoot = ns.hasRootAccess(host);

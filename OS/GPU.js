@@ -1,4 +1,5 @@
 import * as Util from "./OS/Apps/Util.js";
+import * as HDD from "./OS/HDD.js";
 
 export const colors = 
 {
@@ -48,7 +49,7 @@ export function injectContainer(ns, doc)
 	return null;
 }
 
-export async function GenMenu_Boot(container)
+export function GenMenu_Boot(container)
 {
 	let table = `<table border=0 style="width: 100%; height: 100%">`;
 	let body = "<tbody>";
@@ -86,7 +87,7 @@ export async function GenMenu_Boot(container)
 }
 
 /** @param {NS} ns */
-export async function GenMenu_Start(ns)
+export function GenMenu_Start(ns)
 {
 	let table = `<table border=0 style="width: 100%; height: 100%">`;
 	let body = "<tbody>";
@@ -111,7 +112,7 @@ export async function GenMenu_Start(ns)
 	return table + body + final;
 }
 
-export async function GenMenu_Main(container)
+export function GenMenu_Main(container)
 {
 	let table = `<table border=1 style="width: 100%; height: 100%">`;
 	let body = "<tbody>";
@@ -151,7 +152,7 @@ export async function GenMenu_Main(container)
 	container.innerHTML = content;
 }
 
-export async function GenMenu_Servers(servers)
+export function GenMenu_Servers(servers)
 {
 	let table = `
 		<style>
@@ -210,7 +211,7 @@ export async function GenMenu_Servers(servers)
 }
 
 /** @param {NS} ns */
-export async function GenMenu_Targets(servers)
+export function GenMenu_Targets(servers)
 {
 	let table = `
 		<style>
@@ -269,9 +270,13 @@ export async function GenMenu_Targets(servers)
 }
 
 /** @param {NS} ns */
-export async function GenMenu_Purchased(ns, available_servers)
+export function GenMenu_Purchased(ns, available_servers)
 {
-	let table = `<table border=1 style="width: 420px; height: 100%">`;
+	let table = `
+	<style>
+			table.purchasedList tr:hover td {background-color: #454545;}
+		</style>
+		<table id="purchasedList" class="purchasedList" border=1 style="width: 420px; height: 100%">`;
 	let body = "<tbody>";
 
 	let header = `
@@ -281,13 +286,6 @@ export async function GenMenu_Purchased(ns, available_servers)
 				<th style="text-align: left; min-width: 260px; max-width: 160px;">Value</th>
 			</tr>
 		</thead>`;
-
-	let serverCost = ns.getPurchasedServerCost(2);
-	let nextCost = Number.MAX_SAFE_INTEGER;
-	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
-	let maxPurchasedServerRam = 0;
-	let serversAtMinRam = 0;
-	let serversAtMaxRam = 0;
 
 	let purchased_servers = [];
 
@@ -310,78 +308,40 @@ export async function GenMenu_Purchased(ns, available_servers)
 	{
 		let server = purchased_servers[i];
 
-		let serverRam = ns.getServerMaxRam(server.Name);
-		let nextRam = serverRam * 2;
-		let upgradeCost = ns.getPurchasedServerCost(nextRam);
-
-		if (upgradeCost < nextCost)
-		{
-			nextCost = upgradeCost;
-		}
-
-		if (serverRam < minPurchasedServerRam)
-		{
-			minPurchasedServerRam = serverRam;
-		}
-
-		if (serverRam > maxPurchasedServerRam)
-		{
-			maxPurchasedServerRam = serverRam;
-		}
-
 		body += `
 			<tr>
 				<td style="color:White;">Server Name:</td>
-				<td style="color:White;">${server.Name}</td>
+				<td id="${server.Name}_purchased" style="color:White;">${server.Name}</td>
 			</tr>
 		`;
-	}
-
-	for (let i = 0; i < count; i++)
-	{
-		let server = purchased_servers[i];
-		let serverRam = ns.getServerMaxRam(server.Name);
-
-		if (serverRam == minPurchasedServerRam)
-		{
-			serversAtMinRam++;
-		}
-		else if (serverRam == maxPurchasedServerRam)
-		{
-			serversAtMaxRam++;
-		}
-	}
-
-	if (minPurchasedServerRam == Number.MAX_SAFE_INTEGER)
-	{
-		minPurchasedServerRam = 0;
-	}
-
-	if (nextCost == Number.MAX_SAFE_INTEGER)
-	{
-		nextCost = serverCost;
 	}
 
 	body += `
 		<tr>
 			<td style="color:White;">Min Purchased Server Ram:</td>
-			<td style="color:LimeGreen;">${minPurchasedServerRam} GB</td>
+			<td id="minPurchasedServerRam" style="color:LimeGreen;">0 GB</td>
 		</tr>
 		<tr>
 			<td style="color:White;">Servers at Min Ram:</td>
-			<td style="color:LimeGreen;">${serversAtMinRam}</td>
+			<td id="serversAtMinRam" style="color:LimeGreen;">0</td>
 		</tr>
 		<tr>
 			<td style="color:White;">Max Purchased Server Ram:</td>
-			<td style="color:LimeGreen;">${maxPurchasedServerRam} GB</td>
+			<td id="maxPurchasedServerRam" style="color:LimeGreen;">0 GB</td>
 		</tr>
 		<tr>
 			<td style="color:White;">Servers at Max Ram:</td>
-			<td style="color:LimeGreen;">${serversAtMaxRam}</td>
+			<td id="serversAtMaxRam" style="color:LimeGreen;">0</td>
 		</tr>
 		<tr>
 			<td style="color:White;">Buy/Upgrade Server Cost:</td>
-			<td style="color:LimeGreen;">$${nextCost.toLocaleString()}</td>
+			<td id="nextCost" style="color:LimeGreen;">$0</td>
+		</tr>
+		<tr>
+			<td id="purchase_toggle_text" style="color:White;">Buy/Upgrade Servers: Yes</td>
+			<td>
+				<button id="purchase_toggle" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Disable</button>
+			</td>
 		</tr>
 	`;
 
@@ -390,7 +350,7 @@ export async function GenMenu_Purchased(ns, available_servers)
 }
 
 /** @param {NS} ns */
-export async function GenMenu_Details(servers, serverName)
+export function GenMenu_Details(servers, serverName)
 {
 	let content = serverName + " server not found!";
 
@@ -501,7 +461,7 @@ export async function GenMenu_Details(servers, serverName)
 	return content;
 }
 
-export async function GenMenu_Weakening(target, weaken_running)
+export function GenMenu_Weakening(target, weaken_running)
 {
 	let table = `<table border=1 style="width: 1300px; height: 100%">`;
 	let body = "<tbody>";
@@ -565,7 +525,7 @@ export async function GenMenu_Weakening(target, weaken_running)
 	return content;
 }
 
-export async function GenMenu_Growing(target, grow_running)
+export function GenMenu_Growing(target, grow_running)
 {
 	let table = `<table border=1 style="width: 1300px; height: 100%">`;
 	let body = "<tbody>";
@@ -629,7 +589,7 @@ export async function GenMenu_Growing(target, grow_running)
 	return content;
 }
 
-export async function GenMenu_Batching(target, batches_running)
+export function GenMenu_Batching(target, batches_running)
 {
 	let table = `<table border=1 style="width: 1300px; height: 100%">`;
 	let body = "<tbody>";
@@ -695,7 +655,7 @@ export async function GenMenu_Batching(target, batches_running)
 	return content;
 }
 
-export async function GenMenu_Messages(messages)
+export function GenMenu_Messages(messages)
 {
 	let table = `<table border=1 style="width: 100%; height: 100%">`;
 	let body = "<tbody>";
@@ -742,7 +702,7 @@ export async function GenMenu_Messages(messages)
 	return content;
 }
 
-export async function GenMenu_Traffic(target, messages)
+export function GenMenu_Traffic(target, messages)
 {
 	let table = `<table border=1 style="width: 100%; height: 100%">`;
 	let body = "<tbody>";

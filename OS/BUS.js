@@ -128,7 +128,7 @@ async function QueueMessages()
 	}
 }
 
-export async function GetMessage_Cache()
+export function GetMessage_Cache()
 {
 	let queue = [];
 
@@ -141,7 +141,7 @@ export async function GetMessage_Cache()
 	return queue;
 }
 
-export async function GetMessage_Weaken(state)
+export function GetMessage_Weaken(state)
 {
 	if (weaken_queue.length > 0)
 	{
@@ -159,7 +159,7 @@ export async function GetMessage_Weaken(state)
 	return null;
 }
 
-export async function GetMessage_Grow(state)
+export function GetMessage_Grow(state)
 {
 	if (grow_queue.length > 0)
 	{
@@ -177,7 +177,7 @@ export async function GetMessage_Grow(state)
 	return null;
 }
 
-export async function GetMessage_Hack(state)
+export function GetMessage_Hack(state)
 {
 	if (hack_queue.length > 0)
 	{
@@ -195,7 +195,7 @@ export async function GetMessage_Hack(state)
 	return null;
 }
 
-export async function GetMessage_Batch(state)
+export function GetMessage_Batch(state)
 {
 	if (batch_queue.length > 0)
 	{
@@ -213,7 +213,7 @@ export async function GetMessage_Batch(state)
 	return null;
 }
 
-export async function GetMessage_NIC(state)
+export function GetMessage_NIC(state)
 {
 	if (nic_queue.length > 0)
 	{

@@ -4,7 +4,7 @@
  * @param {string} name The name of the txt file
  * @param {object} object The object being stored
  */
-export async function Write(ns, name, object)
+export function Write(ns, name, object)
 {
 	try
 	{
@@ -12,7 +12,7 @@ export async function Write(ns, name, object)
 		let str = JSON.stringify(object);
 		ns.write(fileName, str, "w");
 
-		await Index(ns, fileName);
+		Index(ns, fileName);
 		return true;
 	}
 	catch (error)
@@ -26,7 +26,7 @@ export async function Write(ns, name, object)
  * @param {NS} ns
  * @param {string} name Name of the txt file to read
  */
-export async function Read(ns, name)
+export function Read(ns, name)
 {
 	let str = ns.read(`/OS/HDD/${name}.txt`);
 	if (str)
@@ -37,9 +37,9 @@ export async function Read(ns, name)
 	return null;
 }
 
-async function Index(ns, name)
+function Index(ns, name)
 {
-	let index = await Read(ns, "Index");
+	let index = Read(ns, "Index");
 	if (index == null)
 	{
 		index = [];
