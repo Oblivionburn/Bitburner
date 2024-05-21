@@ -713,7 +713,7 @@ function UpdateMenu_Details(ns, serverName)
 			if (ramElement)
 			{
 				ramElement.style.color = GetRamColor(ram, server.MaxRam);
-				ramElement.innerHTML = ram.toFixed(2);
+				ramElement.innerHTML = ram.toFixed(2) + " GB";
 			}
 
 			let securityElement = eval('document').getElementById(`${server.Name}_security`)
@@ -754,7 +754,7 @@ function UpdateMenu_Details(ns, serverName)
 			let maxRamElement = eval('document').getElementById(`${server.Name}_maxRam`)
 			if (maxRamElement)
 			{
-				maxRamElement.innerHTML = server.MaxRam.toFixed(0);
+				maxRamElement.innerHTML = server.MaxRam.toFixed(0) + " GB";
 			}
 
 			let minSecurityElement = eval('document').getElementById(`${server.Name}_minSecurity`)

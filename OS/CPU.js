@@ -215,6 +215,7 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 		orders.push(Hack);
 
 		let totalCost = WeakenOne.Cost + WeakenTwo.Cost + Grow.Cost + Hack.Cost;
+		let totalThreads = WeakenOne.Threads + WeakenTwo.Threads + Grow.Threads + Hack.Threads;
 		let endTime = now + WeakenOne.Time + (2 * delayScale);
 
 		let batch =
@@ -224,6 +225,7 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 			StartTime: now,
 			EndTime: endTime,
 			Cost: totalCost,
+			Threads: totalThreads,
 			Orders: orders
 		}
 

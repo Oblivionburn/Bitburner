@@ -405,11 +405,11 @@ export function GenMenu_Details(servers, serverName)
 				</tr>
 				<tr>
 					<td style="color:White;">Ram:</td>
-					<td id="${server.Name}_ram" style="color:White;">0</td>
+					<td id="${server.Name}_ram" style="color:White;">0 GB</td>
 				</tr>
 				<tr>
 					<td style="color:White;">Max Ram:</td>
-					<td id="${server.Name}_maxRam" style="color:White;">0</td>
+					<td id="${server.Name}_maxRam" style="color:White;">0 GB</td>
 				</tr>
 				<tr>
 					<td style="color:White;">Security:</td>
@@ -470,8 +470,8 @@ export function GenMenu_Weakening(target, weaken_running)
 		<thead>
 			<tr style="color:DarkGray;">
 				<th style="text-align: left; min-width: 100px;">Index</th>
-				<th style="text-align: left; min-width: 250px;">Host</th>
-				<th style="text-align: left; min-width: 250px;">Target</th>
+				<th style="text-align: left; min-width: 200px;">Host</th>
+				<th style="text-align: left; min-width: 100px;">Cost</th>
 				<th style="text-align: left; min-width: 100px;">Threads</th>
 				<th style="text-align: left; min-width: 200px;">Run Time</th>
 				<th style="text-align: left; min-width: 200px;">Remaining Time</th>
@@ -507,7 +507,7 @@ export function GenMenu_Weakening(target, weaken_running)
 					<tr>
 						<td style="color:White;">${index}</td>
 						<td style="color:White;">${weaken.Host}</td>
-						<td style="color:White;">${weaken.Target}</td>
+						<td style="color:White;">${weaken.Cost} RAM</td>
 						<td style="color:White;">${weaken.Threads}</td>
 						<td style="color:White;">${Util.msToTime(weaken.Time)}</td>
 						<td style="color:White;">${Util.msToTime(weakenTime)}</td>
@@ -534,8 +534,8 @@ export function GenMenu_Growing(target, grow_running)
 		<thead>
 			<tr style="color:DarkGray;">
 				<th style="text-align: left; min-width: 100px;">Index</th>
-				<th style="text-align: left; min-width: 250px;">Host</th>
-				<th style="text-align: left; min-width: 250px;">Target</th>
+				<th style="text-align: left; min-width: 200px;">Host</th>
+				<th style="text-align: left; min-width: 100px;">Cost</th>
 				<th style="text-align: left; min-width: 100px;">Threads</th>
 				<th style="text-align: left; min-width: 200px;">Run Time</th>
 				<th style="text-align: left; min-width: 200px;">Remaining Time</th>
@@ -571,7 +571,7 @@ export function GenMenu_Growing(target, grow_running)
 					<tr>
 						<td style="color:White;">${index}</td>
 						<td style="color:White;">${grow.Host}</td>
-						<td style="color:White;">${grow.Target}</td>
+						<td style="color:White;">${grow.Cost} RAM</td>
 						<td style="color:White;">${grow.Threads}</td>
 						<td style="color:White;">${Util.msToTime(grow.Time)}</td>
 						<td style="color:White;">${Util.msToTime(growTime)}</td>
@@ -598,9 +598,9 @@ export function GenMenu_Batching(target, batches_running)
 		<thead>
 			<tr style="color:DarkGray;">
 				<th style="text-align: left; min-width: 100px;">Index</th>
-				<th style="text-align: left; min-width: 250px;">Host</th>
-				<th style="text-align: left; min-width: 100px;">Target</th>
+				<th style="text-align: left; min-width: 200px;">Host</th>
 				<th style="text-align: left; min-width: 100px;">Cost</th>
+				<th style="text-align: left; min-width: 100px;">Threads</th>
 				<th style="text-align: left; min-width: 250px;">Start Time</th>
 				<th style="text-align: left; min-width: 250px;">End Time</th>
 				<th style="text-align: left; min-width: 250px;">Remaining Time</th>
@@ -636,8 +636,8 @@ export function GenMenu_Batching(target, batches_running)
 					<tr>
 						<td style="color:White;">${index}</td>
 						<td style="color:White;">${batch.Host}</td>
-						<td style="color:White;">${batch.Target}</td>
 						<td style="color:White;">${batch.Cost} RAM</td>
+						<td style="color:White;">${batch.Threads}</td>
 						<td style="color:White;">${new Date(batch.StartTime).toLocaleString()}</td>
 						<td style="color:White;">${new Date(batch.EndTime).toLocaleString()}</td>
 						<td style="color:White;">${Util.msToTime(batchTime)}</td>
@@ -667,7 +667,7 @@ export function GenMenu_Messages(messages)
 				<th style="text-align: left; min-width: 200px;">Host</th>
 				<th style="text-align: left; min-width: 200px;">Order</th>
 				<th style="text-align: left; min-width: 200px;">Target</th>
-				<th style="text-align: left; min-width: 600px;">State</th>
+				<th style="text-align: left; min-width: 200px;">State</th>
 			</tr>
 		</thead>`;
 
@@ -714,7 +714,7 @@ export function GenMenu_Traffic(target, messages)
 				<th style="text-align: left; min-width: 200px;">Host</th>
 				<th style="text-align: left; min-width: 200px;">Order</th>
 				<th style="text-align: left; min-width: 200px;">Target</th>
-				<th style="text-align: left; min-width: 600px;">State</th>
+				<th style="text-align: left; min-width: 200px;">State</th>
 			</tr>
 		</thead>`;
 
