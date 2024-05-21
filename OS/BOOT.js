@@ -510,7 +510,7 @@ function UpdateMenu_Purchased(ns)
 	let minPurchasedServerRamElement = eval('document').getElementById("minPurchasedServerRam")
 	if (minPurchasedServerRamElement)
 	{
-		minPurchasedServerRamElement.innerHTML = minPurchasedServerRam = " GB";
+		minPurchasedServerRamElement.innerHTML = minPurchasedServerRam + " GB";
 	}
 
 	let serversAtMinRamElement = eval('document').getElementById("serversAtMinRam")
@@ -522,7 +522,7 @@ function UpdateMenu_Purchased(ns)
 	let maxPurchasedServerRamElement = eval('document').getElementById("maxPurchasedServerRam")
 	if (maxPurchasedServerRamElement)
 	{
-		maxPurchasedServerRamElement.innerHTML = maxPurchasedServerRam = " GB";
+		maxPurchasedServerRamElement.innerHTML = maxPurchasedServerRam + " GB";
 	}
 
 	let serversAtMaxRamElement = eval('document').getElementById("serversAtMaxRam")
