@@ -1,4 +1,5 @@
 import * as HDD from "./OS/HDD.js";
+import * as Ordering from "./OS/Apps/Ordering.js";
 import * as Util from "./OS/Apps/Util.js";
 import * as BUS from "./OS/BUS.js";
 
@@ -176,47 +177,36 @@ async function Batching(ns)
 /** @param {NS} ns */
 function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 {
-	let Hack = BatchHackOrder(ns, now, target, maxMoney, scale);
-	let weakenOneSecurity = security + Hack.SecurityDiff;
+	let Hack = Ordering.BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor);
+	let Grow = Ordering.BatchGrowOrder(ns, now, target, maxMoney - Hack.MoneyStolen, maxMoney, scale);
 
-	let WeakenOne = BatchWeakenOrder(ns, 0, now, target, weakenOneSecurity, minSecurity, scale);
-
-	let Grow = BatchGrowOrder(ns, now, target, maxMoney - Hack.MoneyStolen, maxMoney, scale);
-
-	let weakenTwoSecurity = security + Hack.SecurityDiff - WeakenOne.SecurityDiff;
-	if (weakenTwoSecurity < minSecurity)
+	let weakenSecurity = security + Hack.SecurityDiff + Grow.SecurityDiff;
+	if (weakenSecurity < minSecurity)
 	{
-		weakenTwoSecurity = minSecurity;
+		weakenSecurity = minSecurity;
 	}
-	weakenTwoSecurity += Grow.SecurityDiff;
 
-	let WeakenTwo = BatchWeakenOrder(ns, (2 * delayScale), now, target, weakenTwoSecurity, minSecurity, scale);
+	let Weaken = Ordering.BatchWeakenOrder(ns, 0, now, target, weakenSecurity, minSecurity, scale);
+	Weaken.EndTime = now + Weaken.Time;
 
-	WeakenOne.EndTime = now + WeakenOne.Time;
-
-	Hack.Delay = (WeakenOne.EndTime - Hack.Time - (1 * delayScale)) - now;
-	Hack.EndTime = now + Hack.Delay + Hack.Time;
-
-	Grow.Delay = (WeakenOne.EndTime - Grow.Time + (1 * delayScale)) - now;
+	Grow.Delay = (Weaken.EndTime - (1 * delayScale)) - Grow.Time - now;
 	Grow.EndTime = now + Grow.Delay + Grow.Time;
 
-	WeakenTwo.Delay = (WeakenOne.EndTime - WeakenTwo.Time + (2 * delayScale)) - now;
-	WeakenTwo.EndTime = now + WeakenTwo.Delay + WeakenTwo.Time;
+	Hack.Delay = (Weaken.EndTime - (2 * delayScale)) - Hack.Time - now;
+	Hack.EndTime = now + Hack.Delay + Hack.Time;
 
 	if (Hack.Threads > 0 && 
-			WeakenOne.Threads > 0 &&
 			Grow.Threads > 0 &&
-			WeakenTwo.Threads > 0)
+			Weaken.Threads > 0)
 	{
 		let orders = [];
-		orders.push(WeakenOne);
-		orders.push(WeakenTwo);
-		orders.push(Grow);
 		orders.push(Hack);
+		orders.push(Grow);
+		orders.push(Weaken);
 
-		let totalCost = WeakenOne.Cost + WeakenTwo.Cost + Grow.Cost + Hack.Cost;
-		let totalThreads = WeakenOne.Threads + WeakenTwo.Threads + Grow.Threads + Hack.Threads;
-		let endTime = now + WeakenOne.Time + (2 * delayScale);
+		let totalCost = Hack.Cost + Grow.Cost + Weaken.Cost;
+		let totalThreads = Hack.Threads + Grow.Threads + Weaken.Threads;
+		let endTime = now + Weaken.Time + (2 * delayScale);
 
 		let batch =
 		{
@@ -233,94 +223,6 @@ function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 	}
 	
 	return null;
-}
-
-/** @param {NS} ns */
-function BatchHackOrder(ns, now, target, maxMoney, scale)
-{
-	let script = "/OS/Apps/Hack.js";
-	let threads = Math.ceil(ns.hackAnalyzeThreads(target, maxMoney * threshFactor) * scale);
-	let moneyStolen = ns.hackAnalyze(target) * threads;
-	let securityDiff = ns.hackAnalyzeSecurity(threads, target);
-	let time = ns.getHackTime(target);
-	let cost = Util.GetCost(ns, script, threads);
-
-	let order =
-	{
-		Host: "",
-		Target: target,
-		Delay: 0,
-		StartTime: now,
-		EndTime: 0,
-		Time: time,
-		Cost: cost,
-		Script: script,
-		Threads: threads,
-		SecurityDiff: securityDiff,
-		MoneyStolen: moneyStolen
-	}
-
-	return order;
-}
-
-/** @param {NS} ns */
-function BatchWeakenOrder(ns, delay, now, target, security, minSecurity, scale)
-{
-	let script = "/OS/Apps/Weaken.js";
-	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
-	let time = ns.getWeakenTime(target);
-	let securityReduce = security - minSecurity;
-	let threads = Math.ceil((securityReduce / baseWeakenAmount) * scale);
-	let cost = Util.GetCost(ns, script, threads);
-	let securityDiff = ns.weakenAnalyze(threads, 1);
-	
-	let order =
-	{
-		Host: "",
-		Target: target,
-		Delay: delay,
-		StartTime: now,
-		EndTime: 0,
-		Time: time,
-		Cost: cost,
-		Script: script,
-		Threads: threads,
-		SecurityDiff: securityDiff
-	}
-
-	return order;
-}
-
-/** @param {NS} ns */
-function BatchGrowOrder(ns, now, target, money, maxMoney, scale)
-{
-	let growMulti = maxMoney;
-	if (money > 0)
-	{
-		growMulti = maxMoney / money;
-	}
-
-	let script = "/OS/Apps/Grow.js";
-	let threads = Math.ceil(ns.growthAnalyze(target, Math.ceil(growMulti), 1) * scale);
-	let securityDiff = ns.growthAnalyzeSecurity(threads);
-	let time = ns.getGrowTime(target);
-	let cost = Util.GetCost(ns, script, threads);
-
-	let order =
-	{
-		Host: "",
-		Target: target,
-		Delay: 0,
-		StartTime: now,
-		EndTime: 0,
-		Time: time,
-		Cost: cost,
-		Script: script,
-		Threads: threads,
-		SecurityDiff: securityDiff
-	}
-
-	return order;
 }
 
 /** @param {NS} ns */
@@ -453,7 +355,7 @@ async function WeakenTarget(ns, target, security, minSecurity)
 				let availableRam = Util.AvailableRam(ns, host);
 				if (availableRam >= cost)
 				{
-					let weaken = WeakenOrder(ns, 0, target, t);
+					let weaken = Ordering.WeakenOrder(ns, 0, target, t);
 					weaken.Host = host;
 
 					let weakenRunning = IsWeakenRunning(weaken);
@@ -507,30 +409,6 @@ function WeakenThreadsRequired(ns, security, minSecurity)
 	let securityReduce = security - minSecurity;
 	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
 	return Math.ceil(securityReduce / baseWeakenAmount);
-}
-
-/** @param {NS} ns */
-function WeakenOrder(ns, delay, target, threads)
-{
-	let script = "/OS/Apps/Weaken.js";
-	let time = ns.getWeakenTime(target);
-	let cost = Util.GetCost(ns, script, threads);
-
-	let order =
-	{
-		Pid: 0,
-		Host: "",
-		Target: target,
-		Delay: delay,
-		StartTime: Date.now(),
-		EndTime: Date.now() + time,
-		Time: time,
-		Cost: cost,
-		Script: script,
-		Threads: threads
-	}
-
-	return order;
 }
 
 function IsWeakenHandled(target, threadsRequired)
@@ -632,7 +510,7 @@ async function GrowTarget(ns, target, money, growThresh)
 				let availableRam = Util.AvailableRam(ns, host);
 				if (availableRam >= cost)
 				{
-					let grow = GrowOrder(ns, 0, target, t);
+					let grow = Ordering.GrowOrder(ns, 0, target, t);
 					grow.Host = host;
 
 					let growRunning = IsGrowRunning(grow);
@@ -688,30 +566,6 @@ function GrowThreadsRequired(ns, target, money, growThresh)
 	}
 
 	return Math.ceil(ns.growthAnalyze(target, growMulti, 1));
-}
-
-/** @param {NS} ns */
-function GrowOrder(ns, delay, target, threads)
-{
-	let script = "/OS/Apps/Grow.js";
-	let time = ns.getGrowTime(target);
-	let cost = Util.GetCost(ns, script, threads);
-
-	let order =
-	{
-		Pid: 0,
-		Host: "",
-		Target: target,
-		Delay: delay,
-		StartTime: Date.now(),
-		EndTime: Date.now() + time,
-		Time: time,
-		Cost: cost,
-		Script: script,
-		Threads: threads
-	}
-
-	return order;
 }
 
 /** @param {NS} ns */
