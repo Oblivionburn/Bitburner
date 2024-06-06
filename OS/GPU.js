@@ -507,7 +507,7 @@ export function GenMenu_Weakening(target, weaken_running)
 					<tr>
 						<td style="color:White;">${index}</td>
 						<td style="color:White;">${weaken.Host}</td>
-						<td style="color:White;">${weaken.Cost} RAM</td>
+						<td style="color:White;">${weaken.Cost.toFixed(2)} RAM</td>
 						<td style="color:White;">${weaken.Threads}</td>
 						<td style="color:White;">${Util.msToTime(weaken.Time)}</td>
 						<td style="color:White;">${Util.msToTime(weakenTime)}</td>
@@ -571,7 +571,7 @@ export function GenMenu_Growing(target, grow_running)
 					<tr>
 						<td style="color:White;">${index}</td>
 						<td style="color:White;">${grow.Host}</td>
-						<td style="color:White;">${grow.Cost} RAM</td>
+						<td style="color:White;">${grow.Cost.toFixed(2)} RAM</td>
 						<td style="color:White;">${grow.Threads}</td>
 						<td style="color:White;">${Util.msToTime(grow.Time)}</td>
 						<td style="color:White;">${Util.msToTime(growTime)}</td>
@@ -636,7 +636,7 @@ export function GenMenu_Batching(target, batches_running)
 					<tr>
 						<td style="color:White;">${index}</td>
 						<td style="color:White;">${batch.Host}</td>
-						<td style="color:White;">${batch.Cost} RAM</td>
+						<td style="color:White;">${batch.Cost.toFixed(2)} RAM</td>
 						<td style="color:White;">${batch.Threads}</td>
 						<td style="color:White;">${new Date(batch.StartTime).toLocaleString()}</td>
 						<td style="color:White;">${new Date(batch.EndTime).toLocaleString()}</td>
