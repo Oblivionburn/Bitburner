@@ -13,8 +13,9 @@ export async function main(ns)
 		await ns.sleep(delay);
 	}
 
-	await ns.grow(target);
-	ns.tryWritePort(2, {DateTime: DTStamp(), Host: host, Order: "Grow", Target: target, State: "Finished"});
+	await ns.grow(target).then(()=> {
+		ns.tryWritePort(2, {DateTime: DTStamp(), Host: host, Order: "Grow", Target: target, State: "Finished"});
+	});
 }
 
 function DTStamp()

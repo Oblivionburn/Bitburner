@@ -13,8 +13,9 @@ export async function main(ns)
 		await ns.sleep(delay);
 	}
 	
-	await ns.hack(target);
-	ns.tryWritePort(3, {DateTime: DTStamp(), Host: host, Order: "Hack", Target: target, State: "Finished"});
+	await ns.hack(target).then(()=> {
+		ns.tryWritePort(3, {DateTime: DTStamp(), Host: host, Order: "Hack", Target: target, State: "Finished"});
+	});
 }
 
 function DTStamp()

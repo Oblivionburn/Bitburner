@@ -13,8 +13,9 @@ export async function main(ns)
 		await ns.sleep(delay);
 	}
 	
-	await ns.weaken(target);
-	ns.tryWritePort(1, {DateTime: DTStamp(), Host: host, Order: "Weaken", Target: target, State: "Finished"});
+	await ns.weaken(target).then(()=> {
+		ns.tryWritePort(1, {DateTime: DTStamp(), Host: host, Order: "Weaken", Target: target, State: "Finished"});
+	});
 }
 
 function DTStamp()
