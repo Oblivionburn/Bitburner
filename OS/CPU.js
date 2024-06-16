@@ -178,14 +178,9 @@ async function Batching(ns)
 function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
 {
 	let Hack = Ordering.BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor);
-	let Grow = Ordering.BatchGrowOrder(ns, now, target, maxMoney - Hack.MoneyStolen, maxMoney, scale);
+	let Grow = Ordering.BatchGrowOrder(ns, now, target, Hack.MoneyRemainder, maxMoney, scale);
 
 	let weakenSecurity = security + Hack.SecurityDiff + Grow.SecurityDiff;
-	if (weakenSecurity < minSecurity)
-	{
-		weakenSecurity = minSecurity;
-	}
-
 	let Weaken = Ordering.BatchWeakenOrder(ns, 0, now, target, weakenSecurity, minSecurity, scale);
 	Weaken.EndTime = now + Weaken.Time;
 

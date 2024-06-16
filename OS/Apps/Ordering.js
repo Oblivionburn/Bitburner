@@ -5,8 +5,9 @@ export function BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor)
 {
 	let script = "/OS/Apps/Hack.js";
 	let threads = Math.ceil(ns.hackAnalyzeThreads(target, maxMoney * threshFactor) * scale);
-	let moneyStolen = ns.hackAnalyze(target) * threads;
-	let securityDiff = ns.hackAnalyzeSecurity(threads, target) + 1;
+	let hackPercent = ns.hackAnalyze(target) * threads;
+	let moneyRemainder = maxMoney * (1 - hackPercent);
+	let securityDiff = ns.hackAnalyzeSecurity(threads, target);
 	let time = ns.getHackTime(target);
 	let cost = Util.GetCost(ns, script, threads);
 
@@ -22,7 +23,7 @@ export function BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor)
 		Script: script,
 		Threads: threads,
 		SecurityDiff: securityDiff,
-		MoneyStolen: moneyStolen
+		MoneyRemainder: moneyRemainder
 	}
 
 	return order;
@@ -32,12 +33,12 @@ export function BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor)
 export function BatchWeakenOrder(ns, delay, now, target, security, minSecurity, scale)
 {
 	let script = "/OS/Apps/Weaken.js";
-	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
+	let baseWeakenAmount = ns.weakenAnalyze(1);
 	let time = ns.getWeakenTime(target);
 	let securityReduce = security - minSecurity;
-	let threads = Math.ceil((securityReduce / baseWeakenAmount) * scale);
+	let threads = Math.ceil((securityReduce / baseWeakenAmount) * scale) + 2;
 	let cost = Util.GetCost(ns, script, threads);
-	let securityDiff = ns.weakenAnalyze(threads, 1);
+	let securityDiff = ns.weakenAnalyze(threads);
 	
 	let order =
 	{
@@ -66,14 +67,8 @@ export function BatchGrowOrder(ns, now, target, money, maxMoney, scale)
 	}
 
 	let script = "/OS/Apps/Grow.js";
-	let threads = Math.ceil(ns.growthAnalyze(target, Math.ceil(growMulti), 1) * scale) + 1;
-
-	if (target == "foodnstuff")
-	{
-		threads += 2;
-	}
-
-	let securityDiff = ns.growthAnalyzeSecurity(threads) + 1;
+	let threads = Math.ceil(ns.growthAnalyze(target, growMulti + 0.1) * scale);
+	let securityDiff = ns.growthAnalyzeSecurity(threads);
 	let time = ns.getGrowTime(target);
 	let cost = Util.GetCost(ns, script, threads);
 

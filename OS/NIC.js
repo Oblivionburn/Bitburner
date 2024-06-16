@@ -12,12 +12,12 @@ export async function main(ns)
 {
 	ns.disableLog("ALL");
 
-	index = [];
-	servers = [];
-
 	while (true)
 	{
+		index = [];
+		servers = [];
 		DeepScan(ns, "home");
+
 		HDD.Write(ns, "servers", servers);
 		PurchasingEnabled(ns);
 
