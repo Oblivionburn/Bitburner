@@ -1,3 +1,7 @@
+let path_found = false;
+let path_servers = [];
+let path_ignore = [];
+
 /** @param {NS} ns */
 export function FindPath(ns, target)
 {
