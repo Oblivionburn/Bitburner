@@ -8,10 +8,6 @@ let servers = [];
 let available_servers = [];
 let targets = [];
 
-let batches_running = [];
-let grow_running = [];
-let weaken_running = [];
-
 let delayScale = 10;
 
 /** @param {NS} ns */
@@ -167,6 +163,7 @@ function Maintenance(ns)
 	let now = Date.now();
 
 	let batch_update = false;
+	let batches_running = HDD.Read(ns, "batches_running");
 	for (let i = 0; i < batches_running.length; i++)
 	{
 		let batch = batches_running[i];
@@ -184,6 +181,7 @@ function Maintenance(ns)
 	}
 
 	let grow_update = false;
+	let grow_running = HDD.Read(ns, "grow_running");
 	for (let i = 0; i < grow_running.length; i++)
 	{
 		let grow = grow_running[i];
@@ -211,6 +209,7 @@ function Maintenance(ns)
 	}
 	
 	let weaken_update = false;
+	let weaken_running = HDD.Read(ns, "weaken_running");
 	for (let i = 0; i < weaken_running.length; i++)
 	{
 		let weaken = weaken_running[i];
