@@ -1,4 +1,5 @@
 import * as Util from "./OS/Apps/Util.js";
+import * as PathFinder from "./OS/Apps/PathFinder.js";
 import * as GPU from "./OS/GPU.js";
 import * as HDD from "./OS/HDD.js";
 import * as BUS from "./OS/BUS.js";
@@ -219,7 +220,7 @@ function MenuSwitch(ns, container)
 				}
 				else if (current_menu.includes("path_"))
 				{
-					eval('document').getElementById("content").innerHTML = "Path to " + GetServerName() + ":<br/><br/>" + Util.FindPath(ns, GetServerName());
+					eval('document').getElementById("content").innerHTML = "Path to " + GetServerName() + ":<br/><br/>" + PathFinder.FindPath(ns, GetServerName());
 				}
 				else if (current_menu.includes("traffic_"))
 				{

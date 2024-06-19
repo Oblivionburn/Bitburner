@@ -1,7 +1,8 @@
 import * as HDD from "./OS/HDD.js";
-import * as Ordering from "./OS/Apps/Ordering.js";
 import * as Util from "./OS/Apps/Util.js";
-import * as BUS from "./OS/BUS.js";
+import * as Batching from "./OS/Apps/Batching.js";
+import * as Weakening from "./OS/Apps/Weakening.js";
+import * as Growing from "./OS/Apps/Growing.js";
 
 let servers = [];
 let available_servers = [];
@@ -10,9 +11,7 @@ let targets = [];
 let batches_running = [];
 let grow_running = [];
 let weaken_running = [];
-let hack_running = [];
 
-let threshFactor = 0.1;
 let delayScale = 10;
 
 /** @param {NS} ns */
@@ -24,39 +23,27 @@ export async function main(ns)
 	servers = [];
 
 	available_servers = [];
-	await HDD.Write(ns, "available_servers", available_servers);
+	HDD.Write(ns, "available_servers", available_servers);
 
 	targets = [];
-	await HDD.Write(ns, "targets", targets);
-
-	batches_running = [];
-	await HDD.Write(ns, "batches_running", batches_running);
-
-	grow_running = [];
-	await HDD.Write(ns, "grow_running", grow_running);
-
-	weaken_running = [];
-	await HDD.Write(ns, "weaken_running", weaken_running);
-
-	hack_running = [];
-	await HDD.Write(ns, "hack_running", hack_running);
+	HDD.Write(ns, "targets", targets);
 
 	while (true)
 	{
 		//ns.resizeTail(440, 280);
-		servers = await HDD.Read(ns, "servers");
+		servers = HDD.Read(ns, "servers");
 
-		await Get_AvailableServers(ns);
-		await GetTargets(ns);
-		await Batching(ns);
-		await GetMessages(ns);
+		Get_AvailableServers(ns);
+		GetTargets(ns);
+		await Processing(ns);
+		Maintenance(ns);
 
 		await ns.sleep(1);
 	}
 }
 
 /** @param {NS} ns */
-async function Get_AvailableServers(ns)
+function Get_AvailableServers(ns)
 {
 	available_servers = [];
 
@@ -77,11 +64,11 @@ async function Get_AvailableServers(ns)
 	}
 
 	available_servers.sort((a, b) => b.MaxRam - a.MaxRam);
-	await HDD.Write(ns, "available_servers", available_servers);
+	HDD.Write(ns, "available_servers", available_servers);
 }
 
 /** @param {NS} ns */
-async function GetTargets(ns)
+function GetTargets(ns)
 {
 	targets = [];
 
@@ -108,16 +95,20 @@ async function GetTargets(ns)
 	}
 
 	targets.sort((a, b) => b.MaxMoney - a.MaxMoney || b.HackLevel - a.HackLevel);
-	await HDD.Write(ns, "targets", targets);
+	HDD.Write(ns, "targets", targets);
 }
 
 /** @param {NS} ns */
-async function Batching(ns)
+async function Processing(ns)
 {
 	if (targets != null &&
 			targets.length > 0)
 	{
 		let now = Date.now();
+
+		let batches_running = HDD.Read(ns, "batches_running");
+		let weaken_running = HDD.Read(ns, "weaken_running");
+		let grow_running = HDD.Read(ns, "grow_running");
 
 		let targetCount = targets.length;
 		for (let t = 0; t < targetCount; t++)
@@ -129,23 +120,24 @@ async function Batching(ns)
 			let security = ns.getServerSecurityLevel(target);
 			let minSecurity = ns.getServerMinSecurityLevel(target);
 
-			let batchCount = GetBatchCount(target);
-			let lastBatch = GetLastBatch(target);
+			let batchCount = Batching.GetBatchCount(target, batches_running);
+			let lastBatch = Batching.GetLastBatch(target, batches_running);
+
 			let batchTime = (lastBatch != null && now >= lastBatch.StartTime + (4 * delayScale)) || lastBatch == null;
 
-			let prepped = IsServerPrepped(security, minSecurity, money, maxMoney);
+			let prepped = Util.IsServerPrepped(security, minSecurity, money, maxMoney);
 			if (prepped &&
 					batchTime)
 			{
-				StopWeaken(ns, target);
-				StopGrow(ns, target);
+				Weakening.StopWeaken(ns, target, weaken_running);
+				Growing.StopGrow(ns, target, grow_running);
 
 				for (let scale = 1.0; scale > 0; scale -= 0.2)
 				{
-					let Batch = CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale);
+					let Batch = Batching.CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale, delayScale);
 					if (Batch != null)
 					{
-						let sent = await SendBatch(ns, Batch, scale);
+						let sent = await Batching.SendBatch(ns, Batch, available_servers, batches_running);
 						if (sent)
 						{
 							break;
@@ -157,518 +149,20 @@ async function Batching(ns)
 			{
 				if (security > minSecurity)
 				{
-					await WeakenTarget(ns, target, security, minSecurity);
+					await Weakening.WeakenTarget(ns, target, security, minSecurity, available_servers, weaken_running);
 				}
 				else if (money < maxMoney &&
 								 batchCount == 0)
 				{
-					StopWeaken(ns, target);
-					await GrowTarget(ns, target, money, maxMoney);
+					Weakening.StopWeaken(ns, target, weaken_running);
+					await Growing.GrowTarget(ns, target, money, maxMoney, available_servers, grow_running);
 				}
 			}
 		}
 	}
 }
 
-/*
-	Handle batching
-*/
-
-/** @param {NS} ns */
-function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale)
-{
-	let Hack = Ordering.BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor);
-	let Grow = Ordering.BatchGrowOrder(ns, now, target, Hack.MoneyRemainder, maxMoney, scale);
-
-	let weakenSecurity = security + Hack.SecurityDiff + Grow.SecurityDiff;
-	let Weaken = Ordering.BatchWeakenOrder(ns, 0, now, target, weakenSecurity, minSecurity, scale);
-	Weaken.EndTime = now + Weaken.Time;
-
-	Grow.Delay = (Weaken.EndTime - (1 * delayScale)) - Grow.Time - now;
-	Grow.EndTime = now + Grow.Delay + Grow.Time;
-
-	Hack.Delay = (Weaken.EndTime - (2 * delayScale)) - Hack.Time - now;
-	Hack.EndTime = now + Hack.Delay + Hack.Time;
-
-	if (Hack.Threads > 0 && 
-			Grow.Threads > 0 &&
-			Weaken.Threads > 0)
-	{
-		let orders = [];
-		orders.push(Hack);
-		orders.push(Grow);
-		orders.push(Weaken);
-
-		let totalCost = Hack.Cost + Grow.Cost + Weaken.Cost;
-		let totalThreads = Hack.Threads + Grow.Threads + Weaken.Threads;
-		let endTime = now + Weaken.Time + (2 * delayScale);
-
-		let batch =
-		{
-			Host: "",
-			Target: target,
-			StartTime: now,
-			EndTime: endTime,
-			Cost: totalCost,
-			Threads: totalThreads,
-			Orders: orders
-		}
-
-		return batch;
-	}
-	
-	return null;
-}
-
-/** @param {NS} ns */
-async function SendBatch(ns, batch, scale)
-{
-	let availableCount = AvailableCount();
-	for (let i = 0; i < availableCount; i++)
-	{
-		let host = available_servers[i].Name;
-		if (ns.serverExists(host))
-		{
-			batch.Host = host;
-
-			let isBatchRunning = IsBatchRunning(batch);
-			if (!isBatchRunning)
-			{
-				//Factor in cost of running the RunBatch.js itself
-				let runBatchScriptCost = Util.GetCost(ns, "/OS/Apps/RunBatch.js", 1);
-				let totalCost = batch.Cost + runBatchScriptCost;
-
-				let availableRam = Util.AvailableRam(ns, host);
-				if (availableRam >= totalCost)
-				{
-					let str = JSON.stringify(batch);
-					let pid = ns.exec("/OS/Apps/RunBatch.js", host, 1, str);
-					if (pid > 0)
-					{
-						while (true)
-						{
-							let batch_message = await BUS.GetMessage_Batch("Started");
-							if (batch_message != null)
-							{
-								ns.print(`Batch Started: {Host:${batch_message.Host}, Target:${batch_message.Target}}`);
-								if (batch.Host == batch_message.Host &&
-										batch.Target == batch_message.Target)
-								{
-									batches_running.push(batch);
-									await HDD.Write(ns, "batches_running", batches_running);
-									break;
-								}
-							}
-							
-							await ns.sleep(1);
-						}
-						
-						return true;
-					}
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
-function IsBatchRunning(newBatch)
-{
-	let count = batches_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let batch = batches_running[i];
-		if (batch.Target == newBatch.Target &&
-				batch.Host == newBatch.Host &&
-				Date.now() < batch.EndTime)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-function GetBatchCount(target)
-{
-	let total = 0;
-
-	let count = batches_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let batch = batches_running[i];
-		if (batch.Target == target)
-		{
-			total++;
-		}
-	}
-
-	return total;
-}
-
-function GetLastBatch(target)
-{
-	let count = batches_running.length;
-	for (let i = count - 1; i >= 0; i--)
-	{
-		let batch = batches_running[i];
-		if (batch.Target == target)
-		{
-			return batch;
-		}
-	}
-
-	return null;
-}
-
-/*
-	Handle weakening
-*/
-
-/** @param {NS} ns */
-async function WeakenTarget(ns, target, security, minSecurity)
-{
-	let threadsRequired = WeakenThreadsRequired(ns, security, minSecurity);
-
-	let weakenHandled = IsWeakenHandled(target, threadsRequired);
-	if (weakenHandled)
-	{
-		return true;
-	}
-
-	for (let t = threadsRequired; t > 0; t--)
-	{
-		let cost = Util.GetCost(ns, "/OS/Apps/Weaken.js", t);
-
-		let availableCount = AvailableCount();
-		for (let i = 0; i < availableCount; i++)
-		{
-			let host = available_servers[i].Name;
-			if (ns.serverExists(host))
-			{
-				let availableRam = Util.AvailableRam(ns, host);
-				if (availableRam >= cost)
-				{
-					let weaken = Ordering.WeakenOrder(ns, 0, target, t);
-					weaken.Host = host;
-
-					let weakenRunning = IsWeakenRunning(weaken);
-					if (!weakenRunning)
-					{
-						let pid = ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
-						if (pid > 0)
-						{
-							weaken.Pid = pid;
-
-							while (true)
-							{
-								let weaken_message = await BUS.GetMessage_Weaken("Started");
-								if (weaken_message != null)
-								{
-									ns.print(`Weaken Started: {Host:${weaken_message.Host}, Target:${weaken_message.Target}}`);
-									if (weaken.Host == weaken_message.Host &&
-											weaken.Target == weaken_message.Target)
-									{
-										weaken_running.push(weaken);
-										await HDD.Write(ns, "weaken_running", weaken_running);
-										break;
-									}
-								}
-								
-								await ns.sleep(1);
-							}
-							
-							t = threadsRequired - t + 1;
-						}
-
-						break;
-					}
-				}
-			}
-		}
-
-		let weakenHandled = IsWeakenHandled(target, threadsRequired);
-		if (weakenHandled)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/** @param {NS} ns */
-function WeakenThreadsRequired(ns, security, minSecurity)
-{
-	let securityReduce = security - minSecurity;
-	let baseWeakenAmount = ns.weakenAnalyze(1, 1);
-	return Math.ceil(securityReduce / baseWeakenAmount);
-}
-
-function IsWeakenHandled(target, threadsRequired)
-{
-	let totalThreads = 0;
-
-	let count = weaken_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let weaken = weaken_running[i];
-		if (weaken.Target == target)
-		{
-			totalThreads += weaken.Threads;
-
-			if (totalThreads >= threadsRequired)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-function IsWeakenRunning(newWeaken)
-{
-	let count = weaken_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let weaken = weaken_running[i];
-		if (weaken.Target == newWeaken.Target &&
-				weaken.Host == newWeaken.Host &&
-				Date.now() < weaken.EndTime)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-function GetWeakenCount(target)
-{
-	let total = 0;
-
-	let count = weaken_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let weaken = weaken_running[i];
-		if (weaken.Target == target)
-		{
-			total++;
-		}
-	}
-
-	return total;
-}
-
-/** @param {NS} ns */
-function StopWeaken(ns, target)
-{
-	for (let i = 0; i < weaken_running.length; i++)
-	{
-		let weaken = weaken_running[i];
-		if (weaken.Target == target)
-		{
-			ns.kill(weaken.Pid);
-			weaken_running.splice(i, 1);
-			i--;
-		}
-	}
-}
-
-/*
-	Handle growing
-*/
-
-/** @param {NS} ns */
-async function GrowTarget(ns, target, money, growThresh)
-{
-	let threadsRequired = GrowThreadsRequired(ns, target, money, growThresh);
-	
-	let growHandled = IsGrowHandled(ns, target, threadsRequired);
-	if (growHandled)
-	{
-		return true;
-	}
-
-	for (let t = threadsRequired; t > 0; t--)
-	{
-		let cost = Util.GetCost(ns, "/OS/Apps/Grow.js", t);
-
-		let availableCount = AvailableCount();
-		for (let i = 0; i < availableCount; i++)
-		{
-			let host = available_servers[i].Name;
-			if (ns.serverExists(host))
-			{
-				let availableRam = Util.AvailableRam(ns, host);
-				if (availableRam >= cost)
-				{
-					let grow = Ordering.GrowOrder(ns, 0, target, t);
-					grow.Host = host;
-
-					let growRunning = IsGrowRunning(grow);
-					if (!growRunning)
-					{
-						let pid = ns.exec(grow.Script, grow.Host, grow.Threads, grow.Target, grow.Delay);
-						if (pid > 0)
-						{
-							grow.Pid = pid;
-
-							while (true)
-							{
-								let grow_message = await BUS.GetMessage_Grow("Started");
-								if (grow_message != null)
-								{
-									ns.print(`Grow Started: {Host:${grow_message.Host}, Target:${grow_message.Target}}`);
-									if (grow.Host == grow_message.Host &&
-											grow.Target == grow_message.Target)
-									{
-										grow_running.push(grow);
-										await HDD.Write(ns, "grow_running", grow_running);
-										break;
-									}
-								}
-								
-								await ns.sleep(1);
-							}
-							
-							t = threadsRequired - t + 1;
-						}
-
-						break;
-					}
-				}
-			}
-		}
-
-		let growHandled = IsGrowHandled(ns, target, threadsRequired);
-		if (growHandled)
-		{
-			return true;
-		}
-	}
-}
-
-/** @param {NS} ns */
-function GrowThreadsRequired(ns, target, money, growThresh)
-{
-	let growMulti = growThresh;
-	if (money > 0)
-	{
-		growMulti = growThresh / money;
-	}
-
-	return Math.ceil(ns.growthAnalyze(target, growMulti, 1));
-}
-
-/** @param {NS} ns */
-function IsGrowHandled(ns, target, threadsRequired)
-{
-	let money = ns.getServerMoneyAvailable(target);
-	let maxMoney = ns.getServerMaxMoney(target);
-
-	if (money >= maxMoney)
-	{
-		return true;
-	}
-
-	let totalThreads = 0;
-
-	let count = grow_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let grow = grow_running[i];
-		if (grow.Target == target)
-		{
-			totalThreads += grow.Threads;
-
-			if (totalThreads >= threadsRequired)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-function IsGrowRunning(newGrow)
-{
-	let count = grow_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let grow = grow_running[i];
-		if (grow.Target == newGrow.Target &&
-				grow.Host == newGrow.Host &&
-				Date.now() < grow.EndTime)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-function GetGrowCount(target)
-{
-	let total = 0;
-
-	let count = grow_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let grow = grow_running[i];
-		if (grow.Target == target)
-		{
-			total++;
-		}
-	}
-
-	return total;
-}
-
-/** @param {NS} ns */
-function StopGrow(ns, target)
-{
-	for (let i = 0; i < grow_running.length; i++)
-	{
-		let grow = grow_running[i];
-		if (grow.Target == target)
-		{
-			ns.kill(grow.Pid);
-			grow_running.splice(i, 1);
-			i--;
-		}
-	}
-}
-
-/*
-	Support functions
-*/
-
-function AvailableCount()
-{
-	if (available_servers != null)
-	{
-		return available_servers.length;
-	}
-
-	return 0;
-}
-
-function IsServerPrepped(security, minSecurity, money, maxMoney)
-{
-	if (security <= minSecurity &&
-			money >= maxMoney)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-async function GetMessages(ns)
+function Maintenance(ns)
 {
 	let now = Date.now();
 
@@ -686,98 +180,60 @@ async function GetMessages(ns)
 
 	if (batch_update)
 	{
-		await HDD.Write(ns, "batches_running", batches_running);
+		HDD.Write(ns, "batches_running", batches_running);
 	}
 
-	let grow_finished = await BUS.GetMessage_Grow("Finished");
-	if (grow_finished != null)
+	let grow_update = false;
+	for (let i = 0; i < grow_running.length; i++)
 	{
-		ns.print(`Grow Finished: {Host:${grow_finished.Host}, Target:${grow_finished.Target}}`);
-		for (let i = 0; i < grow_running.length; i++)
+		let grow = grow_running[i];
+
+		let money = ns.getServerMoneyAvailable(grow.Target);
+		let maxMoney = ns.getServerMaxMoney(grow.Target);
+
+		if (now >= grow.EndTime ||
+				money >= maxMoney)
 		{
-			let grow = grow_running[i];
-			if (grow.Host == grow_finished.Host &&
-					grow.Target == grow_finished.Target)
+			if (money >= maxMoney)
 			{
-				grow_running.splice(i, 1);
-				await HDD.Write(ns, "grow_running", grow_running);
-				break;
+				ns.kill(grow.Pid);
 			}
+
+			grow_update = true;
+			grow_running.splice(i, 1);
+			i--;
 		}
 	}
-	else
+
+	if (grow_update)
 	{
-		let grow_update = false;
-		for (let i = 0; i < grow_running.length; i++)
-		{
-			let grow = grow_running[i];
-
-			let money = ns.getServerMoneyAvailable(grow.Target);
-			let maxMoney = ns.getServerMaxMoney(grow.Target);
-
-			if (now >= grow.EndTime ||
-					money >= maxMoney)
-			{
-				if (money >= maxMoney)
-				{
-					ns.kill(grow.Pid);
-				}
-
-				grow_update = true;
-				grow_running.splice(i, 1);
-				i--;
-			}
-		}
-
-		if (grow_update)
-		{
-			await HDD.Write(ns, "grow_running", grow_running);
-		}
+		HDD.Write(ns, "grow_running", grow_running);
 	}
 	
-	let weaken_finished = await BUS.GetMessage_Weaken("Finished");
-	if (weaken_finished != null)
+	let weaken_update = false;
+	for (let i = 0; i < weaken_running.length; i++)
 	{
-		ns.print(`Weaken Finished: {Host:${weaken_finished.Host}, Target:${weaken_finished.Target}}`);
-		for (let i = 0; i < weaken_running.length; i++)
+		let weaken = weaken_running[i];
+
+		let security = ns.getServerSecurityLevel(weaken.Target);
+		let minSecurity = ns.getServerMinSecurityLevel(weaken.Target);
+
+		if (now >= weaken.EndTime ||
+				security <= minSecurity)
 		{
-			let weaken = weaken_running[i];
-			if (weaken.Host == weaken_finished.Host &&
-					weaken.Target == weaken_finished.Target)
+			if (security <= minSecurity)
 			{
-				weaken_running.splice(i, 1);
-				await HDD.Write(ns, "weaken_running", weaken_running);
-				break;
+				ns.kill(weaken.Pid);
 			}
+			
+			weaken_update = true;
+			weaken_running.splice(i, 1);
+			i--;
 		}
 	}
-	else
+
+	if (weaken_update)
 	{
-		let weaken_update = false;
-		for (let i = 0; i < weaken_running.length; i++)
-		{
-			let weaken = weaken_running[i];
-
-			let security = ns.getServerSecurityLevel(weaken.Target);
-			let minSecurity = ns.getServerMinSecurityLevel(weaken.Target);
-
-			if (now >= weaken.EndTime ||
-					security <= minSecurity)
-			{
-				if (security <= minSecurity)
-				{
-					ns.kill(weaken.Pid);
-				}
-				
-				weaken_update = true;
-				weaken_running.splice(i, 1);
-				i--;
-			}
-		}
-
-		if (weaken_update)
-		{
-			await HDD.Write(ns, "weaken_running", weaken_running);
-		}
+		HDD.Write(ns, "weaken_running", weaken_running);
 	}
 }

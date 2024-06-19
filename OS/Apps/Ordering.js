@@ -67,7 +67,7 @@ export function BatchGrowOrder(ns, now, target, money, maxMoney, scale)
 	}
 
 	let script = "/OS/Apps/Grow.js";
-	let threads = Math.ceil(ns.growthAnalyze(target, growMulti + 0.1) * scale);
+	let threads = Math.ceil(ns.growthAnalyze(target, growMulti)) * 2;
 	let securityDiff = ns.growthAnalyzeSecurity(threads);
 	let time = ns.getGrowTime(target);
 	let cost = Util.GetCost(ns, script, threads);

@@ -243,7 +243,6 @@ function Infect(ns, host)
 	ns.scp("/OS/Apps/Grow.js", host, "home");
 	ns.scp("/OS/Apps/Hack.js", host, "home");
 	ns.scp("/OS/Apps/RunBatch.js", host, "home");
-	ns.tryWritePort(port, {DateTime: Util.DTStamp(), Host: "home", Order: "Infect", Target: host, State: "Finished"});
 }
 
 function IndexedServer(name)

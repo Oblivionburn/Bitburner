@@ -6,7 +6,7 @@ export async function main(ns)
 	let batchStr = ns.args[0];
 	let batch = JSON.parse(batchStr);
 
-	ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "Batch", Target: batch.Target, State: "Started"});
+	ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "RunBatch", Target: batch.Target, State: "Started"});
 
 	let availableRam = AvailableRam(ns, host);
 	if (availableRam >= batch.Cost)
@@ -33,16 +33,16 @@ export async function main(ns)
 				}
 			}
 
-			ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "Batch", Target: batch.Target, State: "Finished"});
+			ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "RunBatch", Target: batch.Target, State: "Finished"});
 		}
 		else
 		{
-			ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "Batch", Target: batch.Target, State: "Error: No Orders"});
+			ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "RunBatch", Target: batch.Target, State: "Error: No Orders"});
 		}
 	}
 	else
 	{
-		ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "Batch", Target: batch.Target, State: "Error: Host RAM (" + availableRam + "GB) less than Batch Cost (" + batch.Cost + "GB)"});
+		ns.tryWritePort(4, {DateTime: DTStamp(), Host: host, Order: "RunBatch", Target: batch.Target, State: "Error: Host RAM (" + availableRam + "GB) less than Batch Cost (" + batch.Cost + "GB)"});
 	}
 }
 

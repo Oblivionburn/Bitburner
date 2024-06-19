@@ -1,3 +1,6 @@
+import * as HDD from "./OS/HDD.js";
+import * as Util from "./OS/Apps/Util.js";
+
 let messages = [];
 let message_cache = [];
 let weaken_queue = [];
@@ -5,6 +8,8 @@ let grow_queue = [];
 let hack_queue = [];
 let batch_queue = [];
 let nic_queue = [];
+
+let queue_cap = 5000;
 
 /** @param {NS} ns */
 export async function main(ns)
@@ -14,19 +19,32 @@ export async function main(ns)
 
 	messages = [];
 	message_cache = [];
+
 	weaken_queue = [];
 	grow_queue = [];
 	hack_queue = [];
 	batch_queue = [];
 	nic_queue = [];
+
+	let batches_running = [];
+	HDD.Write(ns, "batches_running", batches_running);
+
+	let grow_running = [];
+	HDD.Write(ns, "grow_running", grow_running);
+
+	let weaken_running = [];
+	HDD.Write(ns, "weaken_running", weaken_running);
+
+	let hack_running = [];
+	HDD.Write(ns, "hack_running", hack_running);
 	
 	while (true)
 	{
-		await GetMessages(ns);
+		GetMessages(ns);
 
 		if (messages.length > 0)
 		{
-			await QueueMessages();
+			QueueMessages(ns);
 		}
 		
 		await ns.sleep(1);
@@ -34,7 +52,7 @@ export async function main(ns)
 }
 
 /** @param {NS} ns */
-async function GetMessages(ns)
+function GetMessages(ns)
 {
 	for (let i = 1; i <= 20; i++)
 	{
@@ -44,7 +62,7 @@ async function GetMessages(ns)
 			let data = ns.readPort(i);
 			messages.push(data);
 
-			if (message_cache.length >= 5000)
+			if (message_cache.length >= queue_cap)
 			{
 				message_cache.splice(0, 1);
 			}
@@ -56,7 +74,7 @@ async function GetMessages(ns)
 }
 
 /** @param {NS} ns */
-async function QueueMessages()
+function QueueMessages(ns)
 {
 	for (let i = 0; i < messages.length; i++)
 	{
@@ -65,7 +83,7 @@ async function QueueMessages()
 		switch (message.Order)
 		{
 			case "Weaken":
-				if (weaken_queue.length >= 200)
+				if (weaken_queue.length >= queue_cap)
 				{
 					weaken_queue.splice(0, 1);
 				}
@@ -73,10 +91,16 @@ async function QueueMessages()
 				weaken_queue.push(message);
 				messages.splice(i, 1);
 				i--;
+
+				if (message.State == "Finished")
+				{
+					Handle_WeakenFinished(ns, message);
+				}
+
 				break;
 
 			case "Grow":
-				if (grow_queue.length >= 200)
+				if (grow_queue.length >= queue_cap)
 				{
 					grow_queue.splice(0, 1);
 				}
@@ -84,10 +108,16 @@ async function QueueMessages()
 				grow_queue.push(message);
 				messages.splice(i, 1);
 				i--;
+
+				if (message.State == "Finished")
+				{
+					Handle_GrowFinished(ns, message);
+				}
+
 				break;
 
 			case "Hack":
-				if (hack_queue.length >= 200)
+				if (hack_queue.length >= queue_cap)
 				{
 					hack_queue.splice(0, 1);
 				}
@@ -95,13 +125,19 @@ async function QueueMessages()
 				hack_queue.push(message);
 				messages.splice(i, 1);
 				i--;
+
+				if (message.State == "Finished")
+				{
+					Handle_HackFinished(ns, message);
+				}
+
 				break;
 
-			case "Batch":
+			case "RunBatch":
 			case "/OS/Apps/Weaken.js":
 			case "/OS/Apps/Grow.js":
 			case "/OS/Apps/Hack.js":
-				if (batch_queue.length >= 200)
+				if (batch_queue.length >= queue_cap)
 				{
 					batch_queue.splice(0, 1);
 				}
@@ -113,9 +149,8 @@ async function QueueMessages()
 
 			case "Purchase":
 			case "Upgrade":
-			case "Infect":
 			case "Root":
-				if (nic_queue.length >= 200)
+				if (nic_queue.length >= queue_cap)
 				{
 					nic_queue.splice(0, 1);
 				}
@@ -132,7 +167,8 @@ export function GetMessage_Cache()
 {
 	let queue = [];
 
-	for (let i = 0; i < message_cache.length; i++)
+	let count = message_cache.length;
+	for (let i = 0; i < count; i++)
 	{
 		let message = message_cache[i];
 		queue.push(message);
@@ -141,76 +177,156 @@ export function GetMessage_Cache()
 	return queue;
 }
 
-export function GetMessage_Weaken(state)
+export function GetMessage_Weaken(state, host, target)
 {
-	if (weaken_queue.length > 0)
+	let count = weaken_queue.length;
+	for (let i = 0; i < count; i++)
 	{
-		for (let i = 0; i < weaken_queue.length; i++)
+		let message = weaken_queue[i];
+		if (message.State == state &&
+				message.Host == host &&
+				message.Target == target)
 		{
-			let message = weaken_queue[i];
-			if (message.State == state)
-			{
-				weaken_queue.splice(i, 1);
-				return message;
-			}
+			weaken_queue.splice(i, 1);
+			return message;
 		}
 	}
 	
 	return null;
 }
 
-export function GetMessage_Grow(state)
+function Handle_WeakenFinished(ns, message)
 {
-	if (grow_queue.length > 0)
+	let weaken_running = HDD.Read(ns, "weaken_running");
+	let count = Util.GetLength(weaken_running);
+	if (count)
 	{
-		for (let i = 0; i < grow_queue.length; i++)
+		for (let i = 0; i < count; i++)
 		{
-			let message = grow_queue[i];
-			if (message.State == state)
+			let weaken = weaken_running[i];
+			if (message.Host == weaken.Host &&
+					message.Target == weaken.Target)
 			{
-				grow_queue.splice(i, 1);
-				return message;
+				weaken_running.splice(i, 1);
+				HDD.Write(ns, "weaken_running", weaken_running);
+				break;
 			}
+		}
+	}
+}
+
+export function GetMessage_Grow(state, host, target)
+{
+	let count = grow_queue.length;
+	for (let i = 0; i < count; i++)
+	{
+		let message = grow_queue[i];
+		if (message.State == state &&
+				message.Host == host &&
+				message.Target == target)
+		{
+			grow_queue.splice(i, 1);
+			return message;
 		}
 	}
 	
 	return null;
 }
 
-export function GetMessage_Hack(state)
+function Handle_GrowFinished(ns, message)
 {
-	if (hack_queue.length > 0)
+	let grow_running = HDD.Read(ns, "grow_running");
+	let count = Util.GetLength(grow_running);
+	if (count)
 	{
-		for (let i = 0; i < hack_queue.length; i++)
+		for (let i = 0; i < count; i++)
 		{
-			let message = hack_queue[i];
-			if (message.State == state)
+			let grow = grow_running[i];
+			if (message.Host == grow.Host &&
+					message.Target == grow.Target)
 			{
-				hack_queue.splice(i, 1);
-				return message;
+				grow_running.splice(i, 1);
+				HDD.Write(ns, "grow_running", grow_running);
+				break;
 			}
+		}
+	}
+}
+
+export function GetMessage_Hack(state, host, target)
+{
+	let count = hack_queue.length;
+	for (let i = 0; i < count; i++)
+	{
+		let message = hack_queue[i];
+		if (message.State == state &&
+				message.Host == host &&
+				message.Target == target)
+		{
+			hack_queue.splice(i, 1);
+			return message;
 		}
 	}
 	
 	return null;
 }
 
-export function GetMessage_Batch(state)
+function Handle_HackFinished(ns, message)
 {
-	if (batch_queue.length > 0)
+	let hack_running = HDD.Read(ns, "hack_running");
+	let count = Util.GetLength(hack_running);
+	if (count)
 	{
-		for (let i = 0; i < batch_queue.length; i++)
+		for (let i = 0; i < count; i++)
 		{
-			let message = batch_queue[i];
-			if (message.State == state)
+			let hack = hack_running[i];
+			if (message.Host == hack.Host &&
+					message.Target == hack.Target)
 			{
-				batch_queue.splice(i, 1);
-				return message;
+				hack_running.splice(i, 1);
+				HDD.Write(ns, "hack_running", hack_running);
+				break;
 			}
+		}
+	}
+}
+
+export function GetMessage_Batch(state, host, target)
+{
+	let count = batch_queue.length;
+	for (let i = 0; i < count; i++)
+	{
+		let message = batch_queue[i];
+		if (message.State == state &&
+				message.Host == host &&
+				message.Target == target)
+		{
+			batch_queue.splice(i, 1);
+			return message;
 		}
 	}
 	
 	return null;
+}
+
+function Handle_BatchFinished(ns, message)
+{
+	let batches_running = HDD.Read(ns, "batches_running");
+	let count = Util.GetLength(batches_running);
+	if (count)
+	{
+		for (let i = 0; i < count; i++)
+		{
+			let batch = batches_running[i];
+			if (message.Host == batch.Host &&
+					message.Target == batch.Target)
+			{
+				batches_running.splice(i, 1);
+				HDD.Write(ns, "batches_running", batches_running);
+				break;
+			}
+		}
+	}
 }
 
 export function GetMessage_NIC(state)
