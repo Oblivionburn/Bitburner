@@ -1,8 +1,8 @@
-import * as HDD from "./OS/HDD.js";
-import * as Util from "./OS/Apps/Util.js";
-import * as Batching from "./OS/Apps/Batching.js";
-import * as Weakening from "./OS/Apps/Weakening.js";
-import * as Growing from "./OS/Apps/Growing.js";
+import * as HDD from "/OS/HDD.js";
+import * as Util from "/OS/Apps/Util.js";
+import * as Batching from "/OS/Apps/Batching.js";
+import * as Weakening from "/OS/Apps/Weakening.js";
+import * as Growing from "/OS/Apps/Growing.js";
 
 let servers = [];
 let available_servers = [];

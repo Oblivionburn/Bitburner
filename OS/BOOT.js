@@ -1,8 +1,8 @@
-import * as Util from "./OS/Apps/Util.js";
-import * as PathFinder from "./OS/Apps/PathFinder.js";
-import * as GPU from "./OS/GPU.js";
-import * as HDD from "./OS/HDD.js";
-import * as BUS from "./OS/BUS.js";
+import * as Util from "/OS/Apps/Util.js";
+import * as PathFinder from "/OS/Apps/PathFinder.js";
+import * as GPU from "/OS/GPU.js";
+import * as HDD from "/OS/HDD.js";
+import * as BUS from "/OS/BUS.js";
 
 let menuSwitched = false;
 let current_menu = "boot";

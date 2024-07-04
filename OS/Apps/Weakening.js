@@ -1,7 +1,7 @@
-import * as Util from "./OS/Apps/Util.js";
-import * as Ordering from "./OS/Apps/Ordering.js";
-import * as BUS from "./OS/BUS.js";
-import * as HDD from "./OS/HDD.js";
+import * as Util from "/OS/Apps/Util.js";
+import * as Ordering from "/OS/Apps/Ordering.js";
+import * as BUS from "/OS/BUS.js";
+import * as HDD from "/OS/HDD.js";
 
 /** @param {NS} ns */
 export async function WeakenTarget(ns, target, security, minSecurity, available_servers, weaken_running)

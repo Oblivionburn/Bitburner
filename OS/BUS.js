@@ -1,5 +1,5 @@
-import * as HDD from "./OS/HDD.js";
-import * as Util from "./OS/Apps/Util.js";
+import * as HDD from "/OS/HDD.js";
+import * as Util from "/OS/Apps/Util.js";
 
 let messages = [];
 let message_cache = [];

@@ -1,4 +1,4 @@
-import * as Util from "./OS/Apps/Util.js";
+import * as Util from "/OS/Apps/Util.js";
 
 export const colors = 
 {
