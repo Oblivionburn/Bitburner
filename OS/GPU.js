@@ -164,14 +164,14 @@ export function GenMenu_Servers(servers)
 	let header = `
 		<thead>
 			<tr style="color:DarkGray;">
-				<th style="text-align: left; min-width: 80px;">Batching</th>
+				<th style="text-align: left; max-width: 70px;">Batching</th>
 				<th style="text-align: left; max-width: 100px;">Name</th>
-				<th style="text-align: left; min-width: 80px;">Weakening</th>
-				<th style="text-align: left; min-width: 80px;">Security</th>
-				<th style="text-align: left; min-width: 100px;">Min Security</th>
-				<th style="text-align: left; min-width: 80px;">Growing</th>
-				<th style="text-align: left; max-width: 260px;">Money</th>
-				<th style="text-align: left; max-width: 260px;">Max Money</th>
+				<th style="text-align: left; max-width: 76px;">Weakening</th>
+				<th style="text-align: left; max-width: 70px;">Security</th>
+				<th style="text-align: left; max-width: 100px;">Min Security</th>
+				<th style="text-align: left; max-width: 70px;">Growing</th>
+				<th style="text-align: left; min-width: 300px;">Money</th>
+				<th style="text-align: left; max-width: 300px;">Max Money</th>
 			</tr>
 		</thead>`;
 
