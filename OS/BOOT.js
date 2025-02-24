@@ -5,6 +5,8 @@ import * as HDD from "/OS/HDD.js";
 import * as BUS from "/OS/BUS.js";
 
 let menuSwitched = false;
+let menus = [];
+let targetCount = 0;
 let current_menu = "boot";
 
 /** @param {NS} ns */
@@ -25,6 +27,7 @@ export async function main(ns)
 		{
 			menuSwitched = false;
 			MenuSwitch(ns, container);
+			UpdateMenu(ns);
 		}
 
 		UpdateContainer(ns, container);
@@ -58,24 +61,36 @@ function MenuSwitch(ns, container)
 				{
 					menuSwitched = true;
 					current_menu = "servers";
+
+					menus = [];
+					menus.push(current_menu);
 				});
 
 				eval('document').getElementById("targets").addEventListener("click", function()
 				{
 					menuSwitched = true;
 					current_menu = "targets";
+
+					menus = [];
+					menus.push(current_menu);
 				});
 
 				eval('document').getElementById("purchased_servers").addEventListener("click", function()
 				{
 					menuSwitched = true;
 					current_menu = "purchased_servers";
+
+					menus = [];
+					menus.push(current_menu);
 				});
 
 				eval('document').getElementById("messages").addEventListener("click", function()
 				{
 					menuSwitched = true;
 					current_menu = "messages";
+
+					menus = [];
+					menus.push(current_menu);
 				});
 
 				eval('document').getElementById("shutdown").addEventListener("click", function()
@@ -100,6 +115,7 @@ function MenuSwitch(ns, container)
 							menuSwitched = true;
 							let serverName = this.getElementsByTagName("td")[1].innerHTML;
 							current_menu = "details_" + serverName;
+							menus.push(current_menu);
 						};
 					}
 				}
@@ -120,6 +136,7 @@ function MenuSwitch(ns, container)
 							menuSwitched = true;
 							let serverName = this.getElementsByTagName("td")[1].innerHTML;
 							current_menu = "details_" + serverName;
+							menus.push(current_menu);
 						};
 					}
 				}
@@ -128,6 +145,27 @@ function MenuSwitch(ns, container)
 			case "purchased_servers":
 				let available_servers = HDD.Read(ns, "available_servers");
 				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Purchased(ns, available_servers);
+
+				let purchasedTable = eval('document').getElementById("purchasedList");
+				if (purchasedTable)
+				{
+					for (let i = 0; i < purchasedTable.rows.length; i++)
+					{
+						let row = purchasedTable.rows[i];
+						row.onclick = function()
+						{
+							let fieldName = this.getElementsByTagName("td")[0].innerHTML;
+							switch (fieldName)
+							{
+								case "Server Name:":
+									menuSwitched = true;
+									current_menu = "details_" + this.getElementsByTagName("td")[1].innerHTML;
+									menus.push(current_menu);
+									break;
+							}
+						};
+					}
+				}
 
 				eval('document').getElementById("purchase_toggle").addEventListener("click", function()
 				{
@@ -147,7 +185,8 @@ function MenuSwitch(ns, container)
 				break;
 
 			default:
-				if (current_menu.includes("details_"))
+				if (current_menu &&
+					  current_menu.includes("details_"))
 				{
 					let serverName = GetServerName();
 					let servers = HDD.Read(ns, "servers");
@@ -167,16 +206,19 @@ function MenuSwitch(ns, container)
 									case "Weakening:":
 										menuSwitched = true;
 										current_menu = "weakening_" + serverName;
+										menus.push(current_menu);
 										break;
 
 									case "Growing:":
 										menuSwitched = true;
 										current_menu = "growing_" + serverName;
+										menus.push(current_menu);
 										break;
 
 									case "Batching:":
 										menuSwitched = true;
 										current_menu = "batching_" + serverName;
+										menus.push(current_menu);
 										break;
 								}
 							};
@@ -190,6 +232,7 @@ function MenuSwitch(ns, container)
 						{
 							menuSwitched = true;
 							current_menu = "path_" + GetServerName();
+							menus.push(current_menu);
 						};
 					}
 
@@ -200,34 +243,72 @@ function MenuSwitch(ns, container)
 						{
 							menuSwitched = true;
 							current_menu = "traffic_" + GetServerName();
+							menus.push(current_menu);
 						};
 					}
 				}
-				else if (current_menu.includes("weakening_"))
+				else if (current_menu && current_menu.includes("weakening_"))
 				{
 					let weaken_running = HDD.Read(ns, "weaken_running");
 					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Weakening(GetServerName(), weaken_running);
 				}
-				else if (current_menu.includes("growing_"))
+				else if (current_menu && current_menu.includes("growing_"))
 				{
 					let grow_running = HDD.Read(ns, "grow_running");
 					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Weakening(GetServerName(), grow_running);
 				}
-				else if (current_menu.includes("batching_"))
+				else if (current_menu && current_menu.includes("batching_"))
 				{
 					let batches_running = HDD.Read(ns, "batches_running");
 					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Batching(GetServerName(), batches_running);
 				}
-				else if (current_menu.includes("path_"))
+				else if (current_menu && current_menu.includes("path_"))
 				{
 					eval('document').getElementById("content").innerHTML = "Path to " + GetServerName() + ":<br/><br/>" + PathFinder.FindPath(ns, GetServerName());
 				}
-				else if (current_menu.includes("traffic_"))
+				else if (current_menu && current_menu.includes("traffic_"))
 				{
 					let messages = BUS.GetMessage_Cache();
 					eval('document').getElementById("content").innerHTML = GPU.GenMenu_Traffic(GetServerName(), messages);
 				}
 		}
+	}
+}
+
+/** @param {NS} ns */
+function UpdateMenu(ns)
+{
+	let backButton = eval('document').getElementById("back");
+	if (backButton != null)
+	{
+		if (menus.length > 1)
+		{
+			backButton.innerHTML = "<- Back";
+
+			backButton.onclick = function()
+			{
+				menuSwitched = true;
+				menus.pop();
+				if (menus.length > 0)
+				{
+					current_menu = menus[menus.length - 1];
+				}
+				else
+				{
+					current_menu = "main";
+				}
+			};
+		}
+		else
+		{
+			backButton.innerHTML = "";
+		}
+	}
+
+	let currentMenu = eval('document').getElementById("currentMenu");
+	if (currentMenu != null)
+	{
+		currentMenu.innerHTML = "Current Menu: " + current_menu;
 	}
 }
 
@@ -251,7 +332,7 @@ function UpdateContainer(ns, container)
 				break;
 
 			case "messages":
-				let messages = BUS.GetMessage_Cache();
+			let messages = BUS.GetMessage_Cache();
 				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Messages(messages);
 				break;
 
@@ -363,7 +444,14 @@ function UpdateMenu_Targets(ns)
 	let servers = HDD.Read(ns, "targets");
 	if (servers != null)
 	{
+		//Regenerate menu if new target was added
 		let count = servers.length;
+		if (count > targetCount)
+		{
+			targetCount = count;
+			menuSwitched = true;
+		}
+
 		for (let i = 0; i < count; i++)
 		{
 			let server = servers[i];

@@ -113,15 +113,14 @@ export function GenMenu_Start(ns)
 
 export function GenMenu_Main(container)
 {
-	let table = `<table border=1 style="width: 100%; height: 100%">`;
+	let table = `<table id="menuMain" border=1 style="width: 100%; height: 100%">`;
 	let body = "<tbody>";
 
 	let header = `
 		<thead>
 			<tr style="color:DarkGray;">
-				<th style="max-width: 100px">Menu</th>
-				<th></th>
-				<th></th>
+				<th style="max-width: 100px; color:red;">Menu</th>
+				<th id="currentMenu" style="text-align: left; color:red;"></th>
 			</tr>
 		</thead>`;
 
@@ -134,13 +133,11 @@ export function GenMenu_Main(container)
 					<button id="purchased_servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Purchased</button>
 					<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Traffic</button>
 					<button id="shutdown" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Shutdown</button>
+					<button id="back" style="font-size: 18px; text-align: center; height: 40px; width: 100px;"></button>
 				</div>
 			</td>
 			<td style="vertical-align: top; min-width:1290px; overflow:hidden;">
 				<div id="content"></div>
-			</td>
-			<td>
-				<div style="max-width:20px; overflow:hidden;"></div>
 			</td>
 		</tr>
 	`;
