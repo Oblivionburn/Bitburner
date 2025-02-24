@@ -7,7 +7,8 @@ import * as Growing from "/OS/Apps/Growing.js";
 let servers = [];
 let available_servers = [];
 let targets = [];
-
+let maxScale = 1.0;
+let minScale = 0.2;
 let delayScale = 10;
 
 /** @param {NS} ns */
@@ -69,6 +70,8 @@ function GetTargets(ns)
 	targets = [];
 
 	let hackLevel = ns.getHackingLevel();
+	maxScale = hackLevel / 1000 >= 1.0 ? hackLevel / 1000 : 1.0;
+
 	let minHack = 1;
 	let maxHack = Math.ceil(hackLevel / 10);
 	
@@ -101,7 +104,6 @@ async function Processing(ns)
 			targets.length > 0)
 	{
 		let now = Date.now();
-
 		let batches_running = HDD.Read(ns, "batches_running");
 		let weaken_running = HDD.Read(ns, "weaken_running");
 		let grow_running = HDD.Read(ns, "grow_running");
@@ -110,7 +112,7 @@ async function Processing(ns)
 		for (let t = 0; t < targetCount; t++)
 		{
 			let target = targets[t].Name;
-
+			
 			let money = ns.getServerMoneyAvailable(target);
 			let maxMoney = ns.getServerMaxMoney(target);
 			let security = ns.getServerSecurityLevel(target);
@@ -128,7 +130,7 @@ async function Processing(ns)
 				Weakening.StopWeaken(ns, target, weaken_running);
 				Growing.StopGrow(ns, target, grow_running);
 
-				for (let scale = 1.0; scale > 0; scale -= 0.2)
+				for (let scale = maxScale; scale > 0; scale -= minScale)
 				{
 					let Batch = Batching.CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale, delayScale);
 					if (Batch != null)
