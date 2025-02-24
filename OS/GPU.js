@@ -453,12 +453,12 @@ export function GenMenu_Details(servers, serverName)
 						<button id="path" class="${server.Name}_path" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">Get Path</button>
 					</td>
 				</tr>
-				<tr>
+				<!--<tr>
 					<td style="color:White;">Traffic:</td>
 					<td>
 						<button id="traffic" class="${server.Name}_traffic" style="font-size: 12px; text-align: center; height: 20px; width: 200px;">View Traffic</button>
 					</td>
-				</tr>
+				</tr>-->
 			`;
 
 			let final = "</tbody></table>";
