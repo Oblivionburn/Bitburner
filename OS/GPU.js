@@ -95,21 +95,21 @@ export function GenMenu_Start(ns)
 	body += `<tr><td>_______________________</td></tr>`;
 
 	let nic = ns.getRunningScript("/OS/NIC.js", "home");
-	if (nic != null)
+	if (nic == null)
 	{
 		ns.exec("/OS/NIC.js", "home");
 	}
 	body += `<tr><td>Started NIC API.</td></tr>`;
 
 	let bus = ns.getRunningScript("/OS/BUS.js", "home");
-	if (bus != null)
+	if (bus == null)
 	{
 		ns.exec("/OS/BUS.js", "home");
 	}
 	body += `<tr><td>Started BUS API.</td></tr>`;
 
 	let cpu = ns.getRunningScript("/OS/CPU.js", "home");
-	if (cpu != null)
+	if (cpu == null)
 	{
 		ns.exec("/OS/CPU.js", "home");
 	}
