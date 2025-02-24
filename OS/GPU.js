@@ -94,13 +94,25 @@ export function GenMenu_Start(ns)
 	body += `<tr><td>Running boot scripts...</td></tr>`;
 	body += `<tr><td>_______________________</td></tr>`;
 
-	ns.exec("/OS/NIC.js", "home");
+	let nic = ns.getRunningScript("/OS/NIC.js", "home");
+	if (nic != null)
+	{
+		ns.exec("/OS/NIC.js", "home");
+	}
 	body += `<tr><td>Started NIC API.</td></tr>`;
 
-	ns.exec("/OS/BUS.js", "home");
+	let bus = ns.getRunningScript("/OS/BUS.js", "home");
+	if (bus != null)
+	{
+		ns.exec("/OS/BUS.js", "home");
+	}
 	body += `<tr><td>Started BUS API.</td></tr>`;
 
-	ns.exec("/OS/CPU.js", "home");
+	let cpu = ns.getRunningScript("/OS/CPU.js", "home");
+	if (cpu != null)
+	{
+		ns.exec("/OS/CPU.js", "home");
+	}
 	body += `<tr><td>Started CPU API.</td></tr>`;
 
 	body += `<tr><td>_______________________</td></tr>`;
