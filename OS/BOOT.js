@@ -84,6 +84,7 @@ function MenuSwitch(ns, container)
 					menus.push(current_menu);
 				});
 
+				/*
 				eval('document').getElementById("messages").addEventListener("click", function()
 				{
 					menuSwitched = true;
@@ -92,7 +93,7 @@ function MenuSwitch(ns, container)
 					menus = [];
 					menus.push(current_menu);
 				});
-
+				*/
 				eval('document').getElementById("shutdown").addEventListener("click", function()
 				{
 					menuSwitched = true;
@@ -331,11 +332,12 @@ function UpdateContainer(ns, container)
 				UpdateMenu_Purchased(ns);
 				break;
 
+			/*
 			case "messages":
-			let messages = BUS.GetMessage_Cache();
+				let messages = BUS.GetMessage_Cache();
 				eval('document').getElementById("content").innerHTML = GPU.GenMenu_Messages(messages);
 				break;
-
+			*/
 			default:
 				if (current_menu.includes("details_"))
 				{

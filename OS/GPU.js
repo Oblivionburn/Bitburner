@@ -143,7 +143,7 @@ export function GenMenu_Main(container)
 					<button id="servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">All</button>
 					<button id="targets" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Targets</button>
 					<button id="purchased_servers" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Purchased</button>
-					<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Traffic</button>
+					<!--<button id="messages" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Traffic</button>-->
 					<button id="shutdown" style="font-size: 18px; text-align: center; height: 40px; width: 100px;">Shutdown</button>
 					<button id="back" style="font-size: 18px; text-align: center; height: 40px; width: 100px;"></button>
 				</div>
