@@ -342,8 +342,12 @@ export function GenMenu_Purchased(ns, available_servers)
 			<td id="serversAtMaxRam" style="color:LimeGreen;">0</td>
 		</tr>
 		<tr>
-			<td style="color:White;">Buy/Upgrade Server Cost:</td>
-			<td id="nextCost" style="color:LimeGreen;">$0</td>
+			<td style="color:White;">Buy Server Cost:</td>
+			<td id="buyCost" style="color:LimeGreen;">$0</td>
+		</tr>
+		<tr>
+			<td style="color:White;">Upgrade Server Cost:</td>
+			<td id="upgradeCost" style="color:LimeGreen;">$0</td>
 		</tr>
 		<tr>
 			<td id="purchase_toggle_text" style="color:White;">Buy/Upgrade Servers: Yes</td>

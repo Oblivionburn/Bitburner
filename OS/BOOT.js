@@ -13,8 +13,8 @@ let current_menu = "boot";
 export async function main(ns)
 {
 	ns.disableLog("ALL");
-	ns.tail(ns.getScriptName(), "home");
-	ns.resizeTail(1440, 860);
+	ns.ui.openTail(ns.getScriptName(), "home");
+	ns.ui.resizeTail(1440, 860);
 
 	menuSwitched = true;
 	current_menu = "boot";
@@ -517,8 +517,8 @@ function UpdateMenu_Targets(ns)
 /** @param {NS} ns */
 function UpdateMenu_Purchased(ns)
 {
-	let serverCost = ns.getPurchasedServerCost(2);
-	let nextCost = Number.MAX_SAFE_INTEGER;
+	let buyCost = Number.MAX_SAFE_INTEGER;
+	let upgradeCost = Number.MAX_SAFE_INTEGER;
 	let minPurchasedServerRam = Number.MAX_SAFE_INTEGER;
 	let maxPurchasedServerRam = 0;
 	let serversAtMinRam = 0;
@@ -547,12 +547,19 @@ function UpdateMenu_Purchased(ns)
 		let server = purchased_servers[i];
 
 		let serverRam = ns.getServerMaxRam(server.Name);
-		let nextRam = serverRam * 2;
-		let upgradeCost = ns.getPurchasedServerCost(nextRam);
 
-		if (upgradeCost < nextCost)
+		let nextBuyCost = ns.getPurchasedServerCost(serverRam);
+		if (nextBuyCost < buyCost)
 		{
-			nextCost = upgradeCost;
+			buyCost = nextBuyCost;
+		}
+
+		let nextRam = serverRam * 2;
+
+		let nextUpgradeCost = ns.getPurchasedServerCost(nextRam);
+		if (nextUpgradeCost < upgradeCost)
+		{
+			upgradeCost = nextUpgradeCost;
 		}
 
 		if (serverRam < minPurchasedServerRam)
@@ -593,9 +600,14 @@ function UpdateMenu_Purchased(ns)
 		minPurchasedServerRam = 0;
 	}
 
-	if (nextCost == Number.MAX_SAFE_INTEGER)
+	if (buyCost == Number.MAX_SAFE_INTEGER)
 	{
-		nextCost = serverCost;
+		buyCost = ns.getPurchasedServerCost(2);
+	}
+
+	if (upgradeCost == Number.MAX_SAFE_INTEGER)
+	{
+		upgradeCost = buyCost;
 	}
 
 	let minPurchasedServerRamElement = eval('document').getElementById("minPurchasedServerRam")
@@ -622,10 +634,23 @@ function UpdateMenu_Purchased(ns)
 		serversAtMaxRamElement.innerHTML = serversAtMaxRam;
 	}
 
-	let nextCostElement = eval('document').getElementById("nextCost")
-	if (nextCostElement)
+	let buyCostElement = eval('document').getElementById("buyCost")
+	if (buyCostElement)
 	{
-		nextCostElement.innerHTML = "$" + nextCost.toLocaleString();
+		if (count >= ns.getPurchasedServerLimit())
+		{
+			buyCostElement.innerHTML = "-";
+		}
+		else
+		{
+			buyCostElement.innerHTML = "$" + buyCost.toLocaleString();
+		}
+	}
+
+	let upgradeCostElement = eval('document').getElementById("upgradeCost")
+	if (upgradeCostElement)
+	{
+		upgradeCostElement.innerHTML = "$" + upgradeCost.toLocaleString();
 	}
 
 	let purchasing = true;
@@ -887,7 +912,7 @@ function Shutdown(ns)
 	let cpu = ns.getRunningScript("/OS/CPU.js", "home");
 	if (cpu != null)
 	{
-		ns.closeTail(cpu.pid);
+		ns.ui.closeTail(cpu.pid);
 		ns.scriptKill("/OS/CPU.js", "home");
 	}
 
@@ -906,7 +931,7 @@ function Shutdown(ns)
 	let boot = ns.getRunningScript("/OS/BOOT.js", "home");
 	if (boot != null)
 	{
-		ns.closeTail(boot.pid);
+		ns.ui.closeTail(boot.pid);
 		ns.scriptKill("/OS/BOOT.js", "home");
 	}
 }

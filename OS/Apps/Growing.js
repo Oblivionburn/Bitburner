@@ -4,94 +4,95 @@ import * as BUS from "/OS/BUS.js";
 import * as HDD from "/OS/HDD.js";
 
 /** @param {NS} ns */
-export async function GrowTarget(ns, target, money, growThresh, available_servers, grow_running)
+export async function GrowTarget(ns, host, target, money, maxMoney, grow_running)
 {
-	let threadsRequired = GrowThreadsRequired(ns, target, money, growThresh);
-	
-	let growHandled = IsGrowHandled(ns, target, threadsRequired, grow_running);
-	if (growHandled)
+	let threadsRequired = GrowThreadsRequired(ns, target, money, maxMoney);
+
+	let growRunning = IsGrowRunning(host, target, grow_running);
+	let threadsRemaining = GrowThreadsRemaining(target, threadsRequired, grow_running);
+
+	if (threadsRemaining <= 0 ||
+			growRunning)
 	{
 		return true;
 	}
 
-	for (let t = threadsRequired; t > 0; t--)
+	let availableRam = Util.AvailableRam(ns, host);
+
+	for (let threads = 1; threads <= threadsRequired; threads++)
 	{
-		let cost = Util.GetCost(ns, "/OS/Apps/Grow.js", t);
-
-		let availableCount = Util.GetLength(available_servers);
-		for (let i = 0; i < availableCount; i++)
+		let grow = Ordering.GrowOrder(ns, 0, target, threads);
+		if (grow.Cost > availableRam)
 		{
-			let host = available_servers[i].Name;
-			if (ns.serverExists(host))
+			for (let t = threads - 1; t > 0; t--)
 			{
-				let availableRam = Util.AvailableRam(ns, host);
-				if (availableRam >= cost)
+				grow = Ordering.GrowOrder(ns, 0, target, t);
+				if (grow.Cost <= availableRam)
 				{
-					let grow = Ordering.GrowOrder(ns, 0, target, t);
 					grow.Host = host;
-
-					let growRunning = IsGrowRunning(grow, grow_running);
-					if (!growRunning)
-					{
-						let pid = ns.exec(grow.Script, grow.Host, grow.Threads, grow.Target, grow.Delay);
-						if (pid > 0)
-						{
-							grow.Pid = pid;
-
-							while (true)
-							{
-								let grow_message = BUS.GetMessage_Grow("Started", grow.Host, grow.Target);
-								if (grow_message != null)
-								{
-									ns.print(`Grow Started: {Host:${grow_message.Host}, Target:${grow_message.Target}}`);
-									grow_running.push(grow);
-									HDD.Write(ns, "grow_running", grow_running);
-									break;
-								}
-								
-								await ns.sleep(1);
-							}
-							
-							t = threadsRequired - t + 1;
-						}
-
-						break;
-					}
+					let result = await RunGrow(ns, grow, grow_running);
+					return result;
 				}
 			}
-		}
 
-		let growHandled = IsGrowHandled(ns, target, threadsRequired, grow_running);
-		if (growHandled)
+			break;
+		}
+		else if (threads >= threadsRequired &&
+						 grow.Cost <= availableRam)
 		{
-			return true;
+			grow.Host = host;
+			let result = await RunGrow(ns, grow, grow_running);
+			return result;
 		}
 	}
+
+	return false;
 }
 
 /** @param {NS} ns */
-export function GrowThreadsRequired(ns, target, money, growThresh)
+export async function RunGrow(ns, grow, grow_running)
 {
-	let growMulti = growThresh;
+	let pid = ns.exec(grow.Script, grow.Host, grow.Threads, grow.Target, grow.Delay);
+	if (pid > 0)
+	{
+		grow.Pid = pid;
+
+		while (true)
+		{
+			let grow_message = BUS.GetMessage_Grow("Started", grow.Host, grow.Target);
+			if (grow_message != null)
+			{
+				ns.print(`Grow Started: {Host:${grow_message.Host}, Target:${grow_message.Target}}`);
+				grow_running.push(grow);
+				HDD.Write(ns, "grow_running", grow_running);
+				return true;
+			}
+			
+			await ns.sleep(1);
+		}
+	}
+	else
+	{
+		ns.print(`Grow Failed: {Host:${grow.Host}, Target:${grow.Target}}`);
+	}
+
+	return false;
+}
+
+/** @param {NS} ns */
+export function GrowThreadsRequired(ns, target, money, maxMoney)
+{
+	let growMulti = 1;
 	if (money > 0)
 	{
-		growMulti = growThresh / money;
+		growMulti = maxMoney / money;
 	}
 
 	return Math.ceil(ns.growthAnalyze(target, growMulti, 1));
 }
 
-/** @param {NS} ns */
-export function IsGrowHandled(ns, target, threadsRequired, grow_running)
+export function GrowThreadsRemaining(target, threadsRequired, grow_running)
 {
-	let money = ns.getServerMoneyAvailable(target);
-	let maxMoney = ns.getServerMaxMoney(target);
-
-	if (money >= maxMoney)
-	{
-		return true;
-	}
-
 	let totalThreads = 0;
 
 	let count = grow_running.length;
@@ -104,22 +105,22 @@ export function IsGrowHandled(ns, target, threadsRequired, grow_running)
 
 			if (totalThreads >= threadsRequired)
 			{
-				return true;
+				return 0;
 			}
 		}
 	}
 
-	return false;
+	return threadsRequired - totalThreads;
 }
 
-export function IsGrowRunning(newGrow, grow_running)
+export function IsGrowRunning(host, target, grow_running)
 {
 	let count = grow_running.length;
 	for (let i = 0; i < count; i++)
 	{
 		let grow = grow_running[i];
-		if (grow.Target == newGrow.Target &&
-				grow.Host == newGrow.Host &&
+		if (grow.Target == target &&
+				grow.Host == host &&
 				Date.now() < grow.EndTime)
 		{
 			return true;
@@ -127,23 +128,6 @@ export function IsGrowRunning(newGrow, grow_running)
 	}
 
 	return false;
-}
-
-export function GetGrowCount(target, grow_running)
-{
-	let total = 0;
-
-	let count = grow_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let grow = grow_running[i];
-		if (grow.Target == target)
-		{
-			total++;
-		}
-	}
-
-	return total;
 }
 
 /** @param {NS} ns */

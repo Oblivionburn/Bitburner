@@ -7,8 +7,6 @@ import * as Growing from "/OS/Apps/Growing.js";
 let servers = [];
 let available_servers = [];
 let targets = [];
-let maxScale = 1.0;
-let minScale = 0.2;
 let delayScale = 10;
 
 /** @param {NS} ns */
@@ -70,11 +68,7 @@ function GetTargets(ns)
 	targets = [];
 
 	let hackLevel = ns.getHackingLevel();
-	maxScale = hackLevel / 1000 >= 1.0 ? hackLevel / 1000 : 1.0;
 
-	let minHack = 1;
-	let maxHack = Math.ceil(hackLevel / 10);
-	
 	if (servers != null)
 	{
 		let serverCount = servers.length;
@@ -83,8 +77,7 @@ function GetTargets(ns)
 			let server = servers[i];
 
 			if (server.Name != "home" &&
-					server.HackLevel >= minHack &&
-					server.HackLevel <= maxHack &&
+					server.HackLevel <= hackLevel &&
 					server.Rooted &&
 					server.HasMoney)
 			{
@@ -93,14 +86,16 @@ function GetTargets(ns)
 		}
 	}
 
-	targets.sort((a, b) => b.MaxMoney - a.MaxMoney || b.HackLevel - a.HackLevel);
+	targets.sort((a, b) => a.MaxMoney - b.MaxMoney || a.HackLevel - b.HackLevel);
 	HDD.Write(ns, "targets", targets);
 }
 
 /** @param {NS} ns */
 async function Processing(ns)
 {
-	if (targets != null &&
+	if (available_servers != null &&
+			available_servers.length > 0 &&
+			targets != null &&
 			targets.length > 0)
 	{
 		let now = Date.now();
@@ -108,52 +103,44 @@ async function Processing(ns)
 		let weaken_running = HDD.Read(ns, "weaken_running");
 		let grow_running = HDD.Read(ns, "grow_running");
 
-		let targetCount = targets.length;
-		for (let t = 0; t < targetCount; t++)
+		for (let s = 0; s < available_servers.length; s++)
 		{
-			let target = targets[t].Name;
-			
-			let money = ns.getServerMoneyAvailable(target);
-			let maxMoney = ns.getServerMaxMoney(target);
-			let security = ns.getServerSecurityLevel(target);
-			let minSecurity = ns.getServerMinSecurityLevel(target);
-
-			let batchCount = Batching.GetBatchCount(target, batches_running);
-			let lastBatch = Batching.GetLastBatch(target, batches_running);
-
-			let batchTime = (lastBatch != null && now >= lastBatch.StartTime + (4 * delayScale)) || lastBatch == null;
-
-			let prepped = Util.IsServerPrepped(security, minSecurity, money, maxMoney);
-			if (prepped &&
-					batchTime)
+			let server = available_servers[s].Name;
+			if (server != null &&
+					ns.serverExists(server))
 			{
-				Weakening.StopWeaken(ns, target, weaken_running);
-				Growing.StopGrow(ns, target, grow_running);
+				let availableRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server);
+				let maxRam = availableRam / targets.length;
 
-				for (let scale = maxScale; scale > 0; scale -= minScale)
+				for (let t = 0; t < targets.length; t++)
 				{
-					let Batch = Batching.CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale, delayScale);
-					if (Batch != null)
+					let target = targets[t].Name;
+					if (target != null &&
+							ns.serverExists(target))
 					{
-						let sent = await Batching.SendBatch(ns, Batch, available_servers, batches_running);
-						if (sent)
+						let money = ns.getServerMoneyAvailable(target);
+						let maxMoney = ns.getServerMaxMoney(target);
+						let security = ns.getServerSecurityLevel(target);
+						let minSecurity = ns.getServerMinSecurityLevel(target);
+
+						let lastBatch = Batching.GetLastBatch(target, batches_running);
+						let batchTime = (lastBatch != null && now >= lastBatch.StartTime + (4 * delayScale)) || lastBatch == null;
+
+						let prepped = Util.IsServerPrepped(security, minSecurity, money, maxMoney);
+						if (prepped &&
+								batchTime)
 						{
-							break;
+							await Batching.SendBatch(ns, server, target, maxRam, security, minSecurity, maxMoney, delayScale, batches_running);
+						}
+						else if (security > minSecurity)
+						{
+							await Weakening.WeakenTarget(ns, server, target, security, minSecurity, weaken_running);
+						}
+						else if (money < maxMoney)
+						{
+							await Growing.GrowTarget(ns, server, target, money, maxMoney, grow_running);
 						}
 					}
-				}
-			}
-			else
-			{
-				if (security > minSecurity)
-				{
-					await Weakening.WeakenTarget(ns, target, security, minSecurity, available_servers, weaken_running);
-				}
-				else if (money < maxMoney &&
-								 batchCount == 0)
-				{
-					Weakening.StopWeaken(ns, target, weaken_running);
-					await Growing.GrowTarget(ns, target, money, maxMoney, available_servers, grow_running);
 				}
 			}
 		}

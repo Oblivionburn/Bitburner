@@ -6,8 +6,10 @@ import * as HDD from "/OS/HDD.js";
 let threshFactor = 0.1;
 
 /** @param {NS} ns */
-export function CreateBatch(ns, now, target, security, minSecurity, maxMoney, scale, delayScale)
+export function CreateBatch(ns, now, host, target, security, minSecurity, maxMoney, scale, delayScale)
 {
+	let runBatchScriptCost = Util.GetCost(ns, "/OS/Apps/RunBatch.js", 1);
+
 	let Hack = Ordering.BatchHackOrder(ns, now, target, maxMoney, scale, threshFactor);
 	let Grow = Ordering.BatchGrowOrder(ns, now, target, Hack.MoneyRemainder, maxMoney, scale);
 
@@ -30,13 +32,13 @@ export function CreateBatch(ns, now, target, security, minSecurity, maxMoney, sc
 		orders.push(Grow);
 		orders.push(Weaken);
 
-		let totalCost = Hack.Cost + Grow.Cost + Weaken.Cost;
+		let totalCost = Hack.Cost + Grow.Cost + Weaken.Cost + runBatchScriptCost;
 		let totalThreads = Hack.Threads + Grow.Threads + Weaken.Threads;
 		let endTime = now + Weaken.Time + (2 * delayScale);
 
 		let batch =
 		{
-			Host: "",
+			Host: host,
 			Target: target,
 			StartTime: now,
 			EndTime: endTime,
@@ -52,62 +54,71 @@ export function CreateBatch(ns, now, target, security, minSecurity, maxMoney, sc
 }
 
 /** @param {NS} ns */
-export async function SendBatch(ns, batch, available_servers, batches_running)
+export async function SendBatch(ns, host, target, maxRam, security, minSecurity, maxMoney, delayScale, batches_running)
 {
-	let availableCount = Util.GetLength(available_servers);
-	for (let i = 0; i < availableCount; i++)
+	let batchRunning = IsBatchRunning(host, target, batches_running);
+	if (batchRunning)
 	{
-		let host = available_servers[i].Name;
-		if (ns.serverExists(host))
+		return true;
+	}
+
+	let availableRam = Util.AvailableRam(ns, host);
+
+	for (let scale = 0.01; scale <= 10; scale += 0.01)
+	{
+		let batch = CreateBatch(ns, Date.now(), host, target, security, minSecurity, maxMoney, scale, delayScale);
+		if (batch.Cost >= maxRam &&
+				batch.Cost <= availableRam)
 		{
-			batch.Host = host;
-
-			let isBatchRunning = IsBatchRunning(batch, batches_running);
-			if (!isBatchRunning)
-			{
-				//Factor in cost of running the RunBatch.js itself
-				let runBatchScriptCost = Util.GetCost(ns, "/OS/Apps/RunBatch.js", 1);
-				let totalCost = batch.Cost + runBatchScriptCost;
-
-				let availableRam = Util.AvailableRam(ns, host);
-				if (availableRam >= totalCost)
-				{
-					let str = JSON.stringify(batch);
-					let pid = ns.exec("/OS/Apps/RunBatch.js", host, 1, str);
-					if (pid > 0)
-					{
-						while (true)
-						{
-							let batch_message = BUS.GetMessage_Batch("Started", batch.Host, batch.Target);
-							if (batch_message != null)
-							{
-								ns.print(`Batch Started: {Host:${batch_message.Host}, Target:${batch_message.Target}}`);
-								batches_running.push(batch);
-								HDD.Write(ns, "batches_running", batches_running);
-								break;
-							}
-							
-							await ns.sleep(1);
-						}
-						
-						return true;
-					}
-				}
-			}
+			let result = await RunBatch(ns, batch, batches_running);
+			return result;
+		}
+		else if (batch.Cost > availableRam)
+		{
+			break;
 		}
 	}
 
 	return false;
 }
 
-function IsBatchRunning(newBatch, batches_running)
+/** @param {NS} ns */
+export async function RunBatch(ns, batch, batches_running)
+{
+	let str = JSON.stringify(batch);
+	let pid = ns.exec("/OS/Apps/RunBatch.js", batch.Host, 1, str);
+	if (pid > 0)
+	{
+		while (true)
+		{
+			let batch_message = BUS.GetMessage_Batch("Started", batch.Host, batch.Target);
+			if (batch_message != null)
+			{
+				ns.print(`Batch Started: {Host:${batch_message.Host}, Target:${batch_message.Target}}`);
+				batches_running.push(batch);
+				HDD.Write(ns, "batches_running", batches_running);
+				return true;
+			}
+			
+			await ns.sleep(1);
+		}
+	}
+	else
+	{
+		ns.print(`Batch Failed: {Host:${batch.Host}, Target:${batch.Target}}`);
+	}
+
+	return false;
+}
+
+function IsBatchRunning(host, target, batches_running)
 {
 	let count = batches_running.length;
 	for (let i = 0; i < count; i++)
 	{
 		let batch = batches_running[i];
-		if (batch.Target == newBatch.Target &&
-				batch.Host == newBatch.Host &&
+		if (batch.Target == target &&
+				batch.Host == host &&
 				Date.now() < batch.EndTime)
 		{
 			return true;

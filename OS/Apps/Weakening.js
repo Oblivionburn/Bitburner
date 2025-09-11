@@ -4,68 +4,76 @@ import * as BUS from "/OS/BUS.js";
 import * as HDD from "/OS/HDD.js";
 
 /** @param {NS} ns */
-export async function WeakenTarget(ns, target, security, minSecurity, available_servers, weaken_running)
+export async function WeakenTarget(ns, host, target, security, minSecurity, weaken_running)
 {
 	let threadsRequired = WeakenThreadsRequired(ns, security, minSecurity);
 
-	let weakenHandled = IsWeakenHandled(target, threadsRequired, weaken_running);
-	if (weakenHandled)
+	let weakenRunning = IsWeakenRunning(host, target, weaken_running);
+	let threadsRemaining = WeakenThreadsRemaining(target, threadsRequired, weaken_running);
+
+	if (threadsRemaining <= 0 ||
+			weakenRunning)
 	{
 		return true;
 	}
 
-	for (let t = threadsRequired; t > 0; t--)
+	let availableRam = Util.AvailableRam(ns, host);
+
+	for (let threads = 1; threads <= threadsRequired; threads++)
 	{
-		let cost = Util.GetCost(ns, "/OS/Apps/Weaken.js", t);
-
-		let availableCount = Util.GetLength(available_servers);
-		for (let i = 0; i < availableCount; i++)
+		let weaken = Ordering.WeakenOrder(ns, 0, target, threads);
+		if (weaken.Cost > availableRam)
 		{
-			let host = available_servers[i].Name;
-			if (ns.serverExists(host))
+			for (let t = threads - 1; t > 0; t--)
 			{
-				let availableRam = Util.AvailableRam(ns, host);
-				if (availableRam >= cost)
+				weaken = Ordering.WeakenOrder(ns, 0, target, t);
+				if (weaken.Cost <= availableRam)
 				{
-					let weaken = Ordering.WeakenOrder(ns, 0, target, t);
 					weaken.Host = host;
-
-					let weakenRunning = IsWeakenRunning(weaken, weaken_running);
-					if (!weakenRunning)
-					{
-						let pid = ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
-						if (pid > 0)
-						{
-							weaken.Pid = pid;
-
-							while (true)
-							{
-								let weaken_message = BUS.GetMessage_Weaken("Started", weaken.Host, weaken.Target);
-								if (weaken_message != null)
-								{
-									ns.print(`Weaken Started: {Host:${weaken_message.Host}, Target:${weaken_message.Target}}`);
-									weaken_running.push(weaken);
-									HDD.Write(ns, "weaken_running", weaken_running);
-									break;
-								}
-								
-								await ns.sleep(1);
-							}
-							
-							t = threadsRequired - t + 1;
-						}
-
-						break;
-					}
+					let result = await RunWeaken(ns, weaken, weaken_running);
+					return result;
 				}
 			}
-		}
 
-		let weakenHandled = IsWeakenHandled(target, threadsRequired, weaken_running);
-		if (weakenHandled)
-		{
-			return true;
+			break;
 		}
+		else if (threads >= threadsRequired &&
+						 weaken.Cost <= availableRam)
+		{
+			weaken.Host = host;
+			let result = await RunWeaken(ns, weaken, weaken_running);
+			return result;
+		}
+	}
+
+	return false;
+}
+
+/** @param {NS} ns */
+export async function RunWeaken(ns, weaken, weaken_running)
+{
+	let pid = ns.exec(weaken.Script, weaken.Host, weaken.Threads, weaken.Target, weaken.Delay);
+	if (pid > 0)
+	{
+		weaken.Pid = pid;
+
+		while (true)
+		{
+			let weaken_message = BUS.GetMessage_Weaken("Started", weaken.Host, weaken.Target);
+			if (weaken_message != null)
+			{
+				ns.print(`Weaken Started: {Host:${weaken_message.Host}, Target:${weaken_message.Target}}`);
+				weaken_running.push(weaken);
+				HDD.Write(ns, "weaken_running", weaken_running);
+				return true;
+			}
+			
+			await ns.sleep(1);
+		}		
+	}
+	else
+	{
+		ns.print(`Weaken Failed: {Host:${weaken.Host}, Target:${weaken.Target}}`);
 	}
 
 	return false;
@@ -79,7 +87,7 @@ export function WeakenThreadsRequired(ns, security, minSecurity)
 	return Math.ceil(securityReduce / baseWeakenAmount);
 }
 
-export function IsWeakenHandled(target, threadsRequired, weaken_running)
+export function WeakenThreadsRemaining(target, threadsRequired, weaken_running)
 {
 	let totalThreads = 0;
 
@@ -93,22 +101,22 @@ export function IsWeakenHandled(target, threadsRequired, weaken_running)
 
 			if (totalThreads >= threadsRequired)
 			{
-				return true;
+				return 0;
 			}
 		}
 	}
 
-	return false;
+	return threadsRequired - totalThreads;
 }
 
-export function IsWeakenRunning(newWeaken, weaken_running)
+export function IsWeakenRunning(host, target, weaken_running)
 {
 	let count = weaken_running.length;
 	for (let i = 0; i < count; i++)
 	{
 		let weaken = weaken_running[i];
-		if (weaken.Target == newWeaken.Target &&
-				weaken.Host == newWeaken.Host &&
+		if (weaken.Target == target &&
+				weaken.Host == host &&
 				Date.now() < weaken.EndTime)
 		{
 			return true;
@@ -116,23 +124,6 @@ export function IsWeakenRunning(newWeaken, weaken_running)
 	}
 
 	return false;
-}
-
-export function GetWeakenCount(target, weaken_running)
-{
-	let total = 0;
-
-	let count = weaken_running.length;
-	for (let i = 0; i < count; i++)
-	{
-		let weaken = weaken_running[i];
-		if (weaken.Target == target)
-		{
-			total++;
-		}
-	}
-
-	return total;
 }
 
 /** @param {NS} ns */
